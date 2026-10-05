@@ -263,8 +263,12 @@ Browser-specific constraints:
   The collapsed flag is node presentation state (`NodeMeta.collapsed`), so it
   is saved and exported with the conversation and never affects context. If
   the selected branch continues below a collapsed node, the map shows that
-  node, highlighted, in place of the hidden part. References are drawn as
-  dashed edges.
+  node, highlighted, in place of the hidden part. The map is one stop in
+  the tab order; arrow keys then move focus along the layout (up to the
+  parent, down to a reply on the selected branch or else the newest reply,
+  left and right between versions) and Enter shows the focused turn's
+  branch. Moving focus alone never changes the branch being read.
+  References are drawn as dashed edges.
 - **Reading pane:** a linear view of the selected branch: the path to a
   selected turn, continued through the newest child at each step, so a new
   message sent from the end of the branch appears in it. Each turn shows
