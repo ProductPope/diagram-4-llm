@@ -215,6 +215,23 @@ button {
   border-color: #c0392b;
 }
 
+.map-node-fold {
+  pointer-events: all;
+  position: absolute;
+  left: 50%;
+  bottom: -0.75rem;
+  transform: translateX(-50%);
+  min-width: 1.5rem;
+  height: 1.25rem;
+  padding: 0 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  background: Canvas;
+  color: CanvasText;
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
 .map-node-role {
   color: var(--muted);
   font-size: 0.7rem;

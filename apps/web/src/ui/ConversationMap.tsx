@@ -12,13 +12,17 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useEffect } from "react";
 
+import { visibleForest } from "../app/collapse";
 import { layoutForest, NODE_HEIGHT, NODE_WIDTH } from "../app/layout";
 
 interface TurnData extends Record<string, unknown> {
   readonly turn: TurnNode;
   readonly onBranch: boolean;
   readonly isTip: boolean;
+  /** Present only for nodes with children. */
+  readonly fold?: { readonly hidden: number };
   readonly onSelect: (id: NodeId) => void;
+  readonly onToggleCollapsed: (id: NodeId) => void;
 }
 
 type TurnFlowNode = Node<TurnData, "turn">;
@@ -27,6 +31,7 @@ interface Props {
   readonly graph: ConversationGraph;
   readonly branch: readonly TurnNode[];
   readonly onSelect: (id: NodeId) => void;
+  readonly onToggleCollapsed: (id: NodeId) => void;
 }
 
 const nodeTypes = { turn: TurnNodeView };
@@ -34,9 +39,15 @@ const nodeTypes = { turn: TurnNodeView };
 /**
  * The whole conversation as a tree. The selected branch is highlighted, and
  * activating a node shows its branch in the reading pane. Nodes show a short
- * label only; the reading pane is where messages are read.
+ * label only; the reading pane is where messages are read. A collapsed node
+ * hides its descendants and shows how many it hides.
  */
-export function ConversationMap({ graph, branch, onSelect }: Props) {
+export function ConversationMap({
+  graph,
+  branch,
+  onSelect,
+  onToggleCollapsed,
+}: Props) {
   const onBranch = new Set(branch.map((turn) => turn.id));
   const tipId = branch.at(-1)?.id;
   const children = new Map<string | null, string[]>();
@@ -68,11 +79,16 @@ export function ConversationMap({ graph, branch, onSelect }: Props) {
     }
   }
 
-  const positions = layoutForest(children);
+  const { visible, hiddenCounts } = visibleForest(
+    children,
+    (id) => graph.meta.get(id)?.collapsed === true,
+  );
+  const positions = layoutForest(visible);
   const nodes: TurnFlowNode[] = [];
   for (const node of graph.nodes.values()) {
     const position = positions.get(node.id);
     if (node.kind === "summary" || position === undefined) continue;
+    const hidden = hiddenCounts.get(node.id);
     nodes.push({
       id: node.id,
       type: "turn",
@@ -83,7 +99,9 @@ export function ConversationMap({ graph, branch, onSelect }: Props) {
         turn: node,
         onBranch: onBranch.has(node.id),
         isTip: node.id === tipId,
+        ...(children.has(node.id) ? { fold: { hidden: hidden ?? 0 } } : {}),
         onSelect,
+        onToggleCollapsed,
       },
     });
   }
@@ -92,7 +110,9 @@ export function ConversationMap({ graph, branch, onSelect }: Props) {
     <section className="map" aria-label="Conversation map">
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={edges.filter(
+          (edge) => positions.has(edge.source) && positions.has(edge.target),
+        )}
         nodeTypes={nodeTypes}
         nodesDraggable={false}
         nodesConnectable={false}
@@ -105,7 +125,9 @@ export function ConversationMap({ graph, branch, onSelect }: Props) {
         <Controls showInteractive={false} />
         <FollowBranch
           total={nodes.length}
-          branchIds={branch.map((turn) => turn.id)}
+          branchIds={branch
+            .map((turn) => turn.id)
+            .filter((id) => positions.has(id))}
         />
       </ReactFlow>
     </section>
@@ -146,7 +168,7 @@ function FollowBranch({
 }
 
 function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
-  const { turn, onBranch, isTip, onSelect } = data;
+  const { turn, onBranch, isTip, fold, onSelect, onToggleCollapsed } = data;
   const classes = [
     "map-node",
     `map-node-${turn.kind}`,
@@ -170,6 +192,23 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
         </span>
         <span className="map-node-label">{labelOf(turn)}</span>
       </button>
+      {fold !== undefined && (
+        <button
+          type="button"
+          className="map-node-fold"
+          aria-expanded={fold.hidden === 0}
+          aria-label={
+            fold.hidden === 0
+              ? "Collapse replies"
+              : `Expand ${fold.hidden} hidden ${fold.hidden === 1 ? "turn" : "turns"}`
+          }
+          onClick={() => {
+            onToggleCollapsed(turn.id);
+          }}
+        >
+          {fold.hidden === 0 ? "−" : `+${fold.hidden}`}
+        </button>
+      )}
       <Handle type="source" position={Position.Bottom} isConnectable={false} />
     </>
   );
