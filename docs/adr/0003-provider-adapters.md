@@ -1,6 +1,6 @@
 # 0003. Two provider adapters: Anthropic and OpenAI-compatible
 
-Status: Proposed
+Status: Accepted
 Date: 2026-10-05
 
 ## Context
@@ -19,9 +19,8 @@ Implement exactly two adapters behind a common interface:
 - `openai-compatible`, configured with a base URL, for everything else.
 
 The interface accepts the assembled messages and returns a stream of events:
-text delta, usage, finish, and error. Whether to build adapters on a
-multi-provider SDK or on direct HTTP calls is decided during phase 0, based
-on bundle size, browser support and how well streaming errors are exposed.
+text delta, usage, finish, and error. How each adapter is implemented is
+decided in [ADR 0005](0005-adapter-implementation.md).
 
 ## Alternatives considered
 
