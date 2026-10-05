@@ -2,6 +2,19 @@ import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 4173;
 
+const browser = {
+  ...devices["Desktop Chrome"],
+  // Lets environments with a preinstalled Chromium of another revision run
+  // the suite. CI installs the matching browser and leaves it unset.
+  ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE === undefined
+    ? {}
+    : {
+        launchOptions: {
+          executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+        },
+      }),
+};
+
 export default defineConfig({
   testDir: "e2e",
   forbidOnly: process.env.CI !== undefined,
@@ -12,18 +25,16 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: {
-        ...devices["Desktop Chrome"],
-        // Lets environments with a preinstalled Chromium of another revision
-        // run the suite. CI installs the matching browser and leaves it unset.
-        ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE === undefined
-          ? {}
-          : {
-              launchOptions: {
-                executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
-              },
-            }),
-      },
+      testIgnore: /performance\.spec\.ts/,
+      use: browser,
+    },
+    {
+      // Timing budgets are only meaningful without other tests competing
+      // for the machine, so this runs alone after the rest of the suite.
+      name: "performance",
+      testMatch: /performance\.spec\.ts/,
+      dependencies: ["chromium"],
+      use: browser,
     },
   ],
   // End-to-end tests run against the production build, so the Content

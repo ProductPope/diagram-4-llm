@@ -130,7 +130,8 @@ consecutive weeks and records the friction points in issues.
 - [ ] Keyboard navigation of the tree (all controls are reachable by
       keyboard, but there are no tree navigation shortcuts yet)
 - [x] Markdown rendering of answers (no raw HTML; images shown as links)
-- [ ] Canvas performance budget checked with 1,000 nodes
+- [x] Performance checked with a 1,000-turn conversation (render and branch
+      switch budgets in an end-to-end test; panning frame rate not measured)
 
 ### Phase 2: Context control
 
