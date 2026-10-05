@@ -125,7 +125,8 @@ consecutive weeks and records the friction points in issues.
 - [ ] Automatic node titles (nodes show the start of the message)
 - [x] Streaming, cancellation, and error states that keep partial output
 - [x] Persistence in the browser
-- [ ] Export and import of the JSON format in the UI (implemented in core)
+- [x] Export and import of the JSON format (an import never overwrites an
+      existing conversation)
 - [ ] Keyboard navigation of the tree (all controls are reachable by
       keyboard, but there are no tree navigation shortcuts yet)
 - [ ] Markdown rendering in the reading pane (plain text for now)

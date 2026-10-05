@@ -11,6 +11,11 @@ import { useEffect, useState } from "react";
 
 import { visibleBranch } from "../app/branch";
 import {
+  exportFileName,
+  parseConversationFile,
+  serializeConversation,
+} from "../app/transfer";
+import {
   createAdapter,
   loadSettings,
   saveSettings,
@@ -221,6 +226,50 @@ export function App({ openStore, settingsStorage }: AppProps) {
     setEditing(null);
   };
 
+  const exportCurrent = () => {
+    if (graph === null) return;
+    const url = URL.createObjectURL(
+      new Blob([serializeConversation(graph)], { type: "application/json" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = exportFileName(graph);
+    link.click();
+    // Some browsers start the download asynchronously; release the URL after.
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 0);
+  };
+
+  /**
+   * Imports an exported file as a new conversation. A conversation with the
+   * same ID is never overwritten: the import is refused with an explanation.
+   */
+  const importFile = async (file: File) => {
+    if (storage.status !== "ready" || busy) return;
+    const parsed = parseConversationFile(await file.text());
+    if (!parsed.ok) {
+      setError(`${file.name} was not imported: ${parsed.error}`);
+      return;
+    }
+    const id = parsed.value.conversation.id;
+    if (conversations.some((c) => c.id === id)) {
+      setError(
+        `${file.name} was not imported: this conversation is already in the app. Nothing was changed.`,
+      );
+      return;
+    }
+    const saved = await storage.store.save(parsed.value, env.now());
+    if (!saved.ok) {
+      setError(describeStorageError(saved.error));
+      return;
+    }
+    const listed = await storage.store.list();
+    if (listed.ok) setConversations(listed.value);
+    setError(null);
+    await openConversation(id);
+  };
+
   const newConversation = () => {
     if (busy) return;
     setCurrent(null);
@@ -246,6 +295,19 @@ export function App({ openStore, settingsStorage }: AppProps) {
         <button type="button" onClick={newConversation} disabled={busy}>
           New conversation
         </button>
+        <label className="import">
+          Import conversation
+          <input
+            type="file"
+            accept=".json,application/json"
+            disabled={busy || storage.status !== "ready"}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file !== undefined) void importFile(file);
+            }}
+          />
+        </label>
         {storage.status === "failed" && (
           <p role="alert">Conversations cannot be saved: {storage.message}</p>
         )}
@@ -305,6 +367,13 @@ export function App({ openStore, settingsStorage }: AppProps) {
           />
         ) : (
           <>
+            {graph !== null && (
+              <div className="conversation-actions">
+                <button type="button" onClick={exportCurrent}>
+                  Export conversation
+                </button>
+              </div>
+            )}
             {graph === null ? (
               <p className="empty">Start a new conversation below.</p>
             ) : (

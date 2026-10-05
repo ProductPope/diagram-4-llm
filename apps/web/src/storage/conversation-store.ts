@@ -154,7 +154,7 @@ function abortInterruptedTurns(graph: ConversationGraph): ConversationGraph {
   return result;
 }
 
-function describeImportError(error: ImportError): string {
+export function describeImportError(error: ImportError): string {
   switch (error.code) {
     case "invalid-document":
       return error.issues;
