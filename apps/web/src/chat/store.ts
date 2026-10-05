@@ -1,7 +1,8 @@
+/** Members are plain functions, so they can be passed around unbound. */
 export interface Store<T> {
-  get(): T;
-  set(next: T): void;
-  subscribe(listener: () => void): () => void;
+  readonly get: () => T;
+  readonly set: (next: T) => void;
+  readonly subscribe: (listener: () => void) => () => void;
 }
 
 /**
