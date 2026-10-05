@@ -77,10 +77,11 @@ Update PLAN.md, ARCHITECTURE.md or an ADR if the change makes them inaccurate.
 
 ## Git
 
-- Small commits in Conventional Commits format (`feat(core): …`,
-  `fix(web): …`, `docs: …`). The body explains why the change is needed.
-- Never push to the default branch, never rewrite published history, never
-  merge your own pull request. The maintainer reviews and merges every change.
+- Never push to the default branch and never rewrite published history.
+  Every change goes through a pull request.
+- The maintainer has authorised agents to merge their own pull requests, but
+  only when CI is green on the latest commit and no review comment is left
+  unanswered. Never merge with failing or pending checks.
 
 ## Communication
 
