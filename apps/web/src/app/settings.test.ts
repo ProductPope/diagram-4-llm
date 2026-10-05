@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { loadSettings, saveSettings } from "./settings";
+import {
+  loadSettings,
+  parseModelList,
+  saveSettings,
+  type ProviderSettings,
+} from "./settings";
 
 function memoryStorage(): Storage {
   const values = new Map<string, string>();
@@ -25,15 +30,38 @@ function memoryStorage(): Storage {
 describe("provider settings", () => {
   it("round-trips saved settings", () => {
     const storage = memoryStorage();
-    const settings = {
+    const settings: ProviderSettings = {
       adapter: "openai-compatible",
       baseUrl: "http://localhost:11434/v1",
       apiKey: "",
-      model: "llama3",
+      models: ["llama3", "qwen3"],
       systemPrompt: "",
-    } as const;
+    };
     saveSettings(settings, storage);
     expect(loadSettings(storage)).toEqual(settings);
+  });
+
+  it("reads settings saved with a single model as a list of one", () => {
+    const storage = memoryStorage();
+    storage.setItem(
+      "diagram-4-llm.provider-settings",
+      JSON.stringify({
+        adapter: "anthropic",
+        apiKey: "k",
+        model: "claude-sonnet-5-5",
+        systemPrompt: "",
+      }),
+    );
+    expect(loadSettings(storage)).toEqual({
+      adapter: "anthropic",
+      apiKey: "k",
+      models: ["claude-sonnet-5-5"],
+      systemPrompt: "",
+    });
+  });
+
+  it("parses one model per line, ignoring blank lines and surrounding spaces", () => {
+    expect(parseModelList(" a \n\n b\n")).toEqual(["a", "b"]);
   });
 
   it("treats missing, unreadable or invalid settings as not configured", () => {

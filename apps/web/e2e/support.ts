@@ -39,8 +39,11 @@ export async function answerEveryRequest(route: Route, sent: SentMessage[][]) {
 }
 
 /** Points the app at the fake server and saves the settings. */
-export async function configureProvider(page: Page): Promise<void> {
+export async function configureProvider(
+  page: Page,
+  models = ["test-model"],
+): Promise<void> {
   await page.getByRole("button", { name: "Settings" }).click();
-  await page.getByLabel("Model").fill("test-model");
+  await page.getByLabel(/^Models/).fill(models.join("\n"));
   await page.getByRole("button", { name: "Save" }).click();
 }
