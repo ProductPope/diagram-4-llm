@@ -252,10 +252,14 @@ Browser-specific constraints:
 
 ## 6. User interface
 
-- **Canvas:** nodes show a title and role, not full content. The layout is
-  computed automatically as a tidy tree. Manual positioning is not planned
-  for phase 1. Subtrees can be collapsed. References are drawn as a
-  distinct, dashed edge style.
+- **Canvas:** React Flow renders the tree; the layout is computed by the
+  app (`apps/web/src/app/layout.ts`) as a tidy tree: each leaf gets a column,
+  each parent is centred over its children, each depth is a row. Nodes are
+  buttons showing the role and the start of the message; activating one
+  shows its branch in the reading pane, and the selected branch is
+  highlighted. The view refits when turns are added. Manual positioning is
+  not planned for phase 1. Collapsing subtrees is planned. References are
+  drawn as dashed edges.
 - **Reading pane:** a linear view of the selected branch: the path to a
   selected turn, continued through the newest child at each step, so a new
   message sent from the end of the branch appears in it. Each turn shows

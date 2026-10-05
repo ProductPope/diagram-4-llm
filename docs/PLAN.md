@@ -111,6 +111,26 @@ scenario in section 8, and CI enforces this on every change.
 **Exit:** the author uses the app as their primary chat client for two
 consecutive weeks and records the friction points in issues.
 
+**Progress** (updated with each merged change):
+
+- [x] Canvas with automatic tree layout, pan and zoom
+- [ ] Collapsible subtrees on the canvas
+- [x] Fork by editing or regenerating; nothing is overwritten
+- [x] Reading pane for the selected branch
+- [x] Context inspector before sending (sources are shown as roles, not yet
+      linked to nodes)
+- [x] Anthropic and OpenAI-compatible adapters
+- [ ] Model selectable per branch (one provider setting applies to all
+      branches for now; each answer records the model that produced it)
+- [ ] Automatic node titles (nodes show the start of the message)
+- [x] Streaming, cancellation, and error states that keep partial output
+- [x] Persistence in the browser
+- [ ] Export and import of the JSON format in the UI (implemented in core)
+- [ ] Keyboard navigation of the tree (all controls are reachable by
+      keyboard, but there are no tree navigation shortcuts yet)
+- [ ] Markdown rendering in the reading pane (plain text for now)
+- [ ] Canvas performance budget checked with 1,000 nodes
+
 ### Phase 2: Context control
 
 - References: attach any node from any branch to a new user turn.

@@ -7,8 +7,8 @@ exactly what context each branch sends to the model.
 > **Status: phase 1, in progress.** You can chat with an Anthropic model or
 > any OpenAI-compatible server, edit and regenerate messages to create
 > branches, switch between versions, inspect the exact context before
-> sending, and keep conversations in the browser. The canvas view is not
-> built yet. See the [plan](docs/PLAN.md).
+> sending, see the whole conversation as a tree, and keep conversations in
+> the browser. The [plan](docs/PLAN.md) tracks what phase 1 still lacks.
 
 ## The problem
 
