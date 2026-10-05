@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react";
-import { defaultClientConditions } from "vite";
+import { defaultClientConditions, defaultServerConditions } from "vite";
 import { defineConfig, type Plugin } from "vitest/config";
 
 /**
@@ -42,7 +42,9 @@ export default defineConfig({
   plugins: [react(), contentSecurityPolicy()],
   // Workspace packages expose their TypeScript sources under the "source"
   // condition, so the app uses them directly without building them first.
+  // Tests in the Node environment resolve with the server conditions.
   resolve: { conditions: ["source", ...defaultClientConditions] },
+  ssr: { resolve: { conditions: ["source", ...defaultServerConditions] } },
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}"],
