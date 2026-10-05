@@ -1,0 +1,33 @@
+{
+  "name": "@diagram-4-llm/core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Conversation graph model, invariants, context assembly and data format. Pure TypeScript, no I/O.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./schema/conversation.v1.schema.json": "./schema/conversation.v1.schema.json"
+  },
+  "files": [
+    "dist",
+    "schema"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "schema": "UPDATE_SCHEMA=1 vitest run test/schema.test.ts"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "fast-check": "^4.10.2",
+    "vitest": "^5.0.3"
+  }
+}

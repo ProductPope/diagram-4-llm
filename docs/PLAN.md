@@ -70,12 +70,12 @@ Detailed in [ARCHITECTURE.md](ARCHITECTURE.md) and
 
 These primitives cover the four ways of building context for a new branch:
 
-| Context mode | How it is expressed |
-|---|---|
-| Inherit the path from the root | Fork: new child of an existing node |
-| Hand-pick messages | User turn with references to chosen nodes |
-| Summarise a branch | Summary node, then a reference to it |
-| Merge branches | User turn on branch A that references a summary of branch B, or a new root that references summaries of both |
+| Context mode                   | How it is expressed                                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Inherit the path from the root | Fork: new child of an existing node                                                                          |
+| Hand-pick messages             | User turn with references to chosen nodes                                                                    |
+| Summarise a branch             | Summary node, then a reference to it                                                                         |
+| Merge branches                 | User turn on branch A that references a summary of branch B, or a new root that references summaries of both |
 
 ## 6. Scope by phase
 
@@ -168,21 +168,20 @@ reveals a case they do not cover.
 
 ## 9. Risks
 
-| Risk | Impact | Mitigation |
-|---|---|---|
-| Chat vendors ship native branching that is good enough | High | Focus on what vendors are unlikely to build: cross-provider and local models, references and merges, an open data format. |
-| Existing tools already solve this | High | Evaluate existing branching and canvas chat tools before phase 1 and record findings in `docs/research/`. |
-| The project looks like low-effort AI-generated code | High | Engineering standards in [CLAUDE.md](../CLAUDE.md), a pure, tested core, ADRs for every significant decision, small reviewed commits, open disclosure of how it is built. |
-| Scope creep | High | Non-goals in section 4. Phase exit criteria gate new work. |
-| API keys stored in the browser can be read by injected scripts | High | No third-party scripts, strict Content Security Policy, sanitised Markdown rendering with no raw HTML, desktop keychain in phase 3. Documented honestly in the README. |
-| Canvas becomes an unreadable hairball beyond about 100 nodes | Medium | Collapsible subtrees, node titles instead of content, linear reading pane, performance budget tested with generated graphs of 1,000 nodes. |
-| Browser cannot reach local model servers (CORS) | Medium | Setup guide per server (for example `OLLAMA_ORIGINS` for Ollama). Desktop build removes the issue. |
-| Token counts in the browser are estimates | Low | Label them as estimates. Record actual usage reported by the provider after each answer. |
-| Summaries silently lose important details | Medium | Summaries are visible, editable nodes, never applied automatically. |
+| Risk                                                           | Impact | Mitigation                                                                                                                                                                                                                      |
+| -------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chat vendors ship native branching that is good enough         | High   | Focus on what vendors are unlikely to build: cross-provider and local models, references and merges, an open data format.                                                                                                       |
+| Existing tools already solve this                              | High   | Reviewed in [docs/research/2026-10-existing-tools.md](research/2026-10-existing-tools.md): branching is common, explicit and visible context control is rare. Hands-on testing of the closest open tools before phase 1 closes. |
+| The project looks like low-effort AI-generated code            | High   | Engineering standards in [CLAUDE.md](../CLAUDE.md), a pure, tested core, ADRs for every significant decision, small reviewed commits, open disclosure of how it is built.                                                       |
+| Scope creep                                                    | High   | Non-goals in section 4. Phase exit criteria gate new work.                                                                                                                                                                      |
+| API keys stored in the browser can be read by injected scripts | High   | No third-party scripts, strict Content Security Policy, sanitised Markdown rendering with no raw HTML, desktop keychain in phase 3. Documented honestly in the README.                                                          |
+| Canvas becomes an unreadable hairball beyond about 100 nodes   | Medium | Collapsible subtrees, node titles instead of content, linear reading pane, performance budget tested with generated graphs of 1,000 nodes.                                                                                      |
+| Browser cannot reach local model servers (CORS)                | Medium | Setup guide per server (for example `OLLAMA_ORIGINS` for Ollama). Desktop build removes the issue.                                                                                                                              |
+| Token counts in the browser are estimates                      | Low    | Label them as estimates. Record actual usage reported by the provider after each answer.                                                                                                                                        |
+| Summaries silently lose important details                      | Medium | Summaries are visible, editable nodes, never applied automatically.                                                                                                                                                             |
 
 ## 10. Open questions
 
 - [ ] Weekly time budget. Determines whether phase 1 is weeks or months.
 - [ ] License. MIT is the working assumption, not a decision.
 - [ ] Product name. `diagram-4-llm` is the repository name.
-- [ ] Which existing tools to evaluate in `docs/research/`.

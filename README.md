@@ -4,8 +4,9 @@ A local-first chat client for LLMs in which a conversation is a graph, not a
 scroll. Fork at any message, see every branch on a canvas, and control
 exactly what context each branch sends to the model.
 
-> **Status: design phase.** There is no working code yet. This repository
-> currently contains the plan, the architecture and the decision records.
+> **Status: phase 0.** The core library (graph model, invariants, context
+> assembly and data format) is implemented and tested. There is no user
+> interface yet. See the [plan](docs/PLAN.md) for what comes next.
 
 ## The problem
 
@@ -46,6 +47,20 @@ graph TD
 - [Product plan](docs/PLAN.md): problem, principles, phases, risks, open questions
 - [Architecture](docs/ARCHITECTURE.md): data model, invariants, context assembly, security, testing
 - [Decision records](docs/adr/)
+
+## Development
+
+Requires Node.js 22.13 or later and pnpm 10 (`corepack enable` provides the
+version pinned in `package.json`).
+
+```sh
+pnpm install
+pnpm check   # typecheck, lint, format check, tests and build
+```
+
+| Path                             | Contents                                                                            |
+| -------------------------------- | ----------------------------------------------------------------------------------- |
+| [`packages/core`](packages/core) | Graph model, invariants, context assembly and data format. Pure TypeScript, no I/O. |
 
 ## How this project is built
 

@@ -100,27 +100,41 @@ affects what is sent to a model.
 
 ### 2.1 Invariants
 
-The core rejects any operation that would violate these. Each one has a
-property-based test.
+Every node enters a graph through a single function, `insertNode`, which
+checks it against the nodes created before it. Live operations and import
+use the same path, so any graph that exists is valid. Each invariant has
+unit tests, and a property-based test checks all of them after random
+sequences of valid and invalid operations.
 
-1. **Alternation.** A `UserTurn`'s parent is `null` or an `AssistantTurn`
-   with status `complete` or `aborted`. An `AssistantTurn`'s parent is a
-   `UserTurn`. Every path therefore alternates user and assistant turns,
-   which all supported providers accept.
+A turn is **usable** when it is a user turn, or an assistant turn with
+status `complete` or `aborted` and non-empty content. Streaming, failed or
+empty answers would give the model an incomplete or empty message.
+
+1. **Alternation.** A `UserTurn`'s parent is `null` or a usable
+   `AssistantTurn`. An `AssistantTurn`'s parent is a `UserTurn`. Every path
+   therefore starts with a user turn and alternates roles.
 2. **Unique path.** Each turn has at most one parent, so the path from any
    turn to its root is unique. "The context of this message" is always
    well defined.
-3. **Acyclic by construction.** A reference may only point to a node that
-   already exists in the same conversation. Nodes are never re-parented.
-   No operation can create a cycle.
-4. **No redundant references.** A reference to a node that is already on the
-   turn's own path is rejected, because it would duplicate context.
+3. **Acyclic by construction.** Every parent, reference, summary endpoint
+   and revision points to a node created earlier in the same conversation.
+   Nodes are stored in creation order, and import replays them in that
+   order, so a document that points forward is rejected.
+4. **Valid references.** A user turn's references are unique, are not on
+   the turn's own path (that would duplicate context), and point to usable
+   turns or to summaries.
 5. **Immutability.** A node's content, parent and references never change
-   once it is created, except for `AssistantTurn.content` and `status`
-   while `status` is `streaming`. Editing a message creates a sibling.
-   Editing a summary creates a new summary with `revises` set.
-6. **Valid summary range.** `covers.fromId` is an ancestor of `covers.toId`
-   or the same node.
+   once it is created, except for `AssistantTurn.content`, `status`, `error`
+   and `usage` while `status` is `streaming`. Editing a message creates a
+   sibling. Editing a summary creates a new summary with `revises` set to a
+   summary of the same range.
+6. **Valid summary range.** Both ends are turns, `covers.toId` is usable,
+   and `covers.fromId` is an ancestor of `covers.toId` or the same node.
+7. **Truthful manifest.** The manifest recorded with an assistant turn is
+   computed by the core, not supplied by the caller. On import, it must
+   match the context the graph implies for that turn's parent.
+8. **Non-empty content.** User turns and summaries have content other than
+   whitespace.
 
 ### 2.2 Why a tree plus references, not a general DAG
 
@@ -140,8 +154,16 @@ function assembleContext(
   graph: ConversationGraph,
   draft: { parentId: NodeId | null; refs: NodeId[]; content: string },
   options: { systemPrompt: string | null },
-): { messages: ProviderMessage[]; manifest: ContextManifest };
+): Result<
+  { system; messages: ProviderMessage[]; manifest: ContextManifest },
+  GraphError
+>;
 ```
+
+`assembleForUserTurn` returns the same result for a user turn that is
+already in the graph, which is what an answer, or a regenerated answer, is
+generated from. A draft and the turn created from it produce identical
+context.
 
 Algorithm:
 
@@ -178,9 +200,9 @@ as an estimate and shows the provider-reported usage after the answer.
 Two adapters cover the intended providers. See
 [ADR 0003](adr/0003-provider-adapters.md).
 
-| Adapter | Covers |
-|---|---|
-| `anthropic` | Anthropic Messages API |
+| Adapter             | Covers                                                                                                           |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `anthropic`         | Anthropic Messages API                                                                                           |
 | `openai-compatible` | Ollama, LM Studio, llama.cpp server, vLLM, and hosted services that implement the OpenAI Chat Completions format |
 
 Adapters translate `ProviderMessage[]` to the provider's format and stream
@@ -201,11 +223,15 @@ Browser-specific constraints:
 
 - Storage: IndexedDB, with a versioned schema and explicit migrations. Every
   migration has a test that runs on a fixture from the previous version.
-- Export: one JSON document per conversation, containing `formatVersion`,
-  the conversation, all nodes and `NodeMeta`. The format is specified as a
-  JSON Schema in `packages/core` and validated on import. Invalid files are
-  rejected with a message that names the failing field. They are never
-  partially imported.
+- Export: one JSON document per conversation, containing `format`,
+  `formatVersion`, the conversation, all nodes in creation order, and
+  `NodeMeta`. The runtime schema is written with Zod. The published JSON
+  Schema, `packages/core/schema/conversation.v1.schema.json`, is generated
+  from it, and a test fails if the two drift apart.
+- Import parses the document against the schema, rejecting unknown fields,
+  then replays the nodes through `insertNode`. Errors name the failing field
+  or the index and ID of the failing node. A document is never partially
+  imported.
 - Writes are atomic per operation: a node and its metadata are written in
   one transaction.
 
@@ -247,29 +273,30 @@ Phase 3 desktop packaging moves keys to the operating system keychain.
 
 ## 8. Testing strategy
 
-| Layer | Tool | What it proves |
-|---|---|---|
-| `core` unit tests | Vitest | Each operation and each reference scenario in PLAN section 8 |
-| `core` property-based tests | fast-check | Invariants in section 2.1 hold for randomly generated operation sequences |
-| Format tests | Vitest + JSON Schema | Export then import is lossless. Previous-version fixtures still import. |
-| Adapter tests | Vitest + recorded fixtures | Request mapping and stream parsing, including errors and cancellation |
-| End-to-end tests | Playwright + a fake provider | The phase 1 user flows, without network access or API keys |
+| Layer                       | Tool                         | What it proves                                                            |
+| --------------------------- | ---------------------------- | ------------------------------------------------------------------------- |
+| `core` unit tests           | Vitest                       | Each operation and each reference scenario in PLAN section 8              |
+| `core` property-based tests | fast-check                   | Invariants in section 2.1 hold for randomly generated operation sequences |
+| Format tests                | Vitest + JSON Schema         | Export then import is lossless. Previous-version fixtures still import.   |
+| Adapter tests               | Vitest + recorded fixtures   | Request mapping and stream parsing, including errors and cancellation     |
+| End-to-end tests            | Playwright + a fake provider | The phase 1 user flows, without network access or API keys                |
 
 Coverage is measured for `packages/core` only and is a signal, not a target.
 Snapshot-only tests are not accepted as the sole test of a behaviour.
 
 ## 9. Proposed stack
 
-To be confirmed while scaffolding phase 0. Versions are pinned at that time.
+Confirmed for `packages/core` in phase 0. The UI choices are confirmed in
+phase 1. TypeScript is held at 6.0 until typescript-eslint supports 7.
 
-| Concern | Choice | Reason |
-|---|---|---|
-| Language | TypeScript, `strict` | Type-checked domain model |
-| Workspace | pnpm workspaces | Separates `core` from `web` with little tooling |
-| Build | Vite | Standard, fast, well documented |
-| UI | React | Largest ecosystem for canvas and accessibility libraries |
-| Canvas | React Flow (`@xyflow/react`) | Mature node-graph rendering. Layout is computed separately. |
-| State | Zustand | Small, explicit, easy to test |
-| Storage | Dexie over IndexedDB | Schema versioning and transactions |
-| Validation | Zod, exported to JSON Schema | One source for runtime validation and the published format |
-| Tests | Vitest, fast-check, Playwright | See section 8 |
+| Concern    | Choice                         | Reason                                                      |
+| ---------- | ------------------------------ | ----------------------------------------------------------- |
+| Language   | TypeScript, `strict`           | Type-checked domain model                                   |
+| Workspace  | pnpm workspaces                | Separates `core` from `web` with little tooling             |
+| Build      | Vite                           | Standard, fast, well documented                             |
+| UI         | React                          | Largest ecosystem for canvas and accessibility libraries    |
+| Canvas     | React Flow (`@xyflow/react`)   | Mature node-graph rendering. Layout is computed separately. |
+| State      | Zustand                        | Small, explicit, easy to test                               |
+| Storage    | Dexie over IndexedDB           | Schema versioning and transactions                          |
+| Validation | Zod, exported to JSON Schema   | One source for runtime validation and the published format  |
+| Tests      | Vitest, fast-check, Playwright | See section 8                                               |
