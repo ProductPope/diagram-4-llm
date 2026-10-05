@@ -1,6 +1,6 @@
 import { useState, type SubmitEvent } from "react";
 
-import type { ProviderSettings } from "../app/settings";
+import { parseModelList, type ProviderSettings } from "../app/settings";
 
 interface Props {
   readonly initial: ProviderSettings | null;
@@ -18,15 +18,18 @@ export function SettingsForm({ initial, onSave, onCancel }: Props) {
       : "http://localhost:11434/v1",
   );
   const [apiKey, setApiKey] = useState(initial?.apiKey ?? "");
-  const [model, setModel] = useState(initial?.model ?? "");
+  const [models, setModels] = useState(initial?.models.join("\n") ?? "");
   const [systemPrompt, setSystemPrompt] = useState(initial?.systemPrompt ?? "");
 
   const onSubmit = (event: SubmitEvent) => {
     event.preventDefault();
+    const list = parseModelList(models);
+    // The textarea is required, but it can still hold only whitespace.
+    if (list.length === 0) return;
     onSave(
       adapter === "anthropic"
-        ? { adapter, apiKey, model, systemPrompt }
-        : { adapter, baseUrl, apiKey, model, systemPrompt },
+        ? { adapter, apiKey, models: list, systemPrompt }
+        : { adapter, baseUrl, apiKey, models: list, systemPrompt },
     );
   };
 
@@ -84,12 +87,13 @@ export function SettingsForm({ initial, onSave, onCancel }: Props) {
         configure. Anyone who can run scripts on this page could read it.
       </p>
       <label>
-        Model
-        <input
+        Models (one per line; the first is the default)
+        <textarea
           required
-          value={model}
+          rows={3}
+          value={models}
           onChange={(event) => {
-            setModel(event.target.value);
+            setModels(event.target.value);
           }}
         />
       </label>

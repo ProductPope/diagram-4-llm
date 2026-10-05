@@ -79,6 +79,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
   const [draft, setDraft] = useState("");
   const [controller, setController] = useState<AbortController | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<
     "saved" | "unsaved" | "saving" | "failed"
   >("saved");
@@ -170,12 +171,26 @@ export function App({ openStore, settingsStorage }: AppProps) {
         ? "The last answer is unfinished or failed. Regenerate it or edit your message to continue."
         : null;
 
+  // The model for the next answer: the user's choice if it is still
+  // configured, otherwise the model that answered last on this branch, so a
+  // branch keeps its model, otherwise the first configured model.
+  const configuredModels = settings?.models ?? [];
+  const branchModel = branch.findLast((turn) => turn.kind === "assistant")
+    ?.generation.model;
+  const model =
+    [modelChoice, branchModel].find(
+      (candidate): candidate is string =>
+        candidate !== null &&
+        candidate !== undefined &&
+        configuredModels.includes(candidate),
+    ) ?? configuredModels[0];
+
   const generation = (configured: ProviderSettings): GenerationSettings => ({
     adapter: createAdapter(configured),
     ...(configured.adapter === "openai-compatible"
       ? { baseUrl: configured.baseUrl }
       : {}),
-    model: configured.model,
+    model: model ?? configured.models[0] ?? "",
     params: {},
     systemPrompt:
       configured.systemPrompt === "" ? null : configured.systemPrompt,
@@ -442,6 +457,24 @@ export function App({ openStore, settingsStorage }: AppProps) {
                     : settings.systemPrompt
                 }
               />
+            )}
+            {configuredModels.length > 1 && model !== undefined && (
+              <label className="model-choice">
+                Model for the next answer
+                <select
+                  value={model}
+                  disabled={busy}
+                  onChange={(event) => {
+                    setModelChoice(event.target.value);
+                  }}
+                >
+                  {configuredModels.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
             )}
             <Composer
               key={composerKey}

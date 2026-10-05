@@ -120,8 +120,8 @@ consecutive weeks and records the friction points in issues.
 - [x] Context inspector before sending (sources are shown as roles, not yet
       linked to nodes)
 - [x] Anthropic and OpenAI-compatible adapters
-- [ ] Model selectable per branch (one provider setting applies to all
-      branches for now; each answer records the model that produced it)
+- [x] Model selectable for each answer from a configured list; a branch
+      keeps the model that answered last (one provider at a time)
 - [ ] Automatic node titles (nodes show the start of the message)
 - [x] Streaming, cancellation, and error states that keep partial output
 - [x] Persistence in the browser
