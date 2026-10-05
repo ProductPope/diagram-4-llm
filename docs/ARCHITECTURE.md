@@ -230,8 +230,13 @@ Browser-specific constraints:
 
 ## 5. Persistence and data format
 
-- Storage: IndexedDB, with a versioned schema and explicit migrations. Every
-  migration has a test that runs on a fixture from the previous version.
+- Storage: IndexedDB, one record per conversation holding the exported
+  document (`apps/web/src/storage`). Writing whole documents makes every save
+  a single atomic write, and loading goes through the same validation as a
+  file import, so a damaged record is reported instead of partly loaded.
+  Turns found still streaming on load are marked aborted, keeping their
+  content. The database schema is versioned; each future migration gets a
+  test that upgrades a database of the previous version.
 - Export: one JSON document per conversation, containing `format`,
   `formatVersion`, the conversation, all nodes in creation order, and
   `NodeMeta`. The runtime schema is written with Zod. The published JSON
@@ -244,8 +249,6 @@ Browser-specific constraints:
   then replays the nodes through `insertNode`. Errors name the failing field
   or the index and ID of the failing node. A document is never partially
   imported.
-- Writes are atomic per operation: a node and its metadata are written in
-  one transaction.
 
 ## 6. User interface
 
@@ -313,6 +316,6 @@ phase 1. TypeScript is held at 6.0 until typescript-eslint supports 7.
 | UI         | React                          | Largest ecosystem for canvas and accessibility libraries    |
 | Canvas     | React Flow (`@xyflow/react`)   | Mature node-graph rendering. Layout is computed separately. |
 | State      | Zustand                        | Small, explicit, easy to test                               |
-| Storage    | Dexie over IndexedDB           | Schema versioning and transactions                          |
+| Storage    | IndexedDB, no wrapper library  | One record per conversation needs only get, put and delete  |
 | Validation | Zod, exported to JSON Schema   | One source for runtime validation and the published format  |
 | Tests      | Vitest, fast-check, Playwright | See section 8                                               |
