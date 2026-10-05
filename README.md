@@ -4,9 +4,11 @@ A local-first chat client for LLMs in which a conversation is a graph, not a
 scroll. Fork at any message, see every branch on a canvas, and control
 exactly what context each branch sends to the model.
 
-> **Status: phase 0.** The core library (graph model, invariants, context
-> assembly and data format) is implemented and tested. There is no user
-> interface yet. See the [plan](docs/PLAN.md) for what comes next.
+> **Status: phase 1, in progress.** You can chat with an Anthropic model or
+> any OpenAI-compatible server, edit and regenerate messages to create
+> branches, switch between versions, inspect the exact context before
+> sending, and keep conversations in the browser. The canvas view is not
+> built yet. See the [plan](docs/PLAN.md).
 
 ## The problem
 
@@ -60,14 +62,33 @@ pnpm e2e     # end-to-end tests against the production build (Playwright)
 pnpm --filter @diagram-4-llm/web dev   # run the web app locally
 ```
 
+### Connecting a model
+
+Open **Settings** in the app and choose a provider:
+
+- **OpenAI-compatible** for a local server such as Ollama or LM Studio, or a
+  hosted service with that API. The server must allow the app's origin
+  through CORS. For Ollama, start it with `OLLAMA_ORIGINS` set to the
+  app's address, for example
+  `OLLAMA_ORIGINS=http://localhost:5173 ollama serve` for the development
+  server. For other servers, see their CORS settings.
+- **Anthropic** with your own API key.
+
+The API key is stored in your browser's local storage and sent only to the
+provider you configure. Any script running on the page could read it; the
+app loads no third-party scripts and ships a strict Content Security Policy
+to keep it that way.
+
+### Tests
+
 End-to-end tests need Chromium for the installed Playwright version
 (`pnpm --filter @diagram-4-llm/web exec playwright install chromium`). To use
 an existing Chromium instead, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to its path.
 
-| Path                             | Contents                                                                                          |
-| -------------------------------- | ------------------------------------------------------------------------------------------------- |
-| [`packages/core`](packages/core) | Graph model, invariants, context assembly and data format. Pure TypeScript, no I/O.               |
-| [`apps/web`](apps/web)           | Browser app. Currently a shell with a strict Content Security Policy; phase 1 builds the UI here. |
+| Path                             | Contents                                                                            |
+| -------------------------------- | ----------------------------------------------------------------------------------- |
+| [`packages/core`](packages/core) | Graph model, invariants, context assembly and data format. Pure TypeScript, no I/O. |
+| [`apps/web`](apps/web)           | Browser app: chat, branching, context inspector, provider adapters and storage.     |
 
 ## How this project is built
 

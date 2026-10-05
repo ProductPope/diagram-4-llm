@@ -17,7 +17,8 @@
     "@anthropic-ai/sdk": "^0.131.0",
     "@diagram-4-llm/core": "workspace:*",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

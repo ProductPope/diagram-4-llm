@@ -37,6 +37,18 @@ export type StorageResult<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly error: StorageError };
 
+export function describeStorageError(error: StorageError): string {
+  switch (error.code) {
+    case "unavailable":
+    case "io":
+      return error.message;
+    case "not-found":
+      return `Conversation ${error.id} was not found.`;
+    case "corrupt":
+      return `Conversation ${error.id} is damaged and was not loaded: ${error.message}`;
+  }
+}
+
 export interface ConversationStore {
   list(): Promise<StorageResult<ConversationSummary[]>>;
   /**

@@ -256,7 +256,12 @@ Browser-specific constraints:
   computed automatically as a tidy tree. Manual positioning is not planned
   for phase 1. Subtrees can be collapsed. References are drawn as a
   distinct, dashed edge style.
-- **Reading pane:** a linear view of the selected path, rendered as Markdown.
+- **Reading pane:** a linear view of the selected branch: the path to a
+  selected turn, continued through the newest child at each step, so a new
+  message sent from the end of the branch appears in it. Each turn shows
+  its sibling versions; editing a message or regenerating an answer adds a
+  sibling instead of changing anything. Content is rendered as plain text
+  for now; Markdown rendering, with raw HTML disabled, is planned.
 - **Composer:** sends to the selected node's branch. Shows the references
   attached to the draft.
 - **Context inspector:** the assembled messages, their sources and the
