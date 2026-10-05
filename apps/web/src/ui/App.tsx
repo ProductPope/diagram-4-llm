@@ -33,6 +33,7 @@ import {
 } from "../storage/conversation-store";
 import { Composer } from "./Composer";
 import { ContextInspector } from "./ContextInspector";
+import { ConversationMap } from "./ConversationMap";
 import { ReadingPane } from "./ReadingPane";
 import { SettingsForm } from "./SettingsForm";
 
@@ -269,6 +270,20 @@ export function App({ openStore, settingsStorage }: AppProps) {
           </ul>
         )}
       </nav>
+
+      {graph === null ? (
+        <section className="map map-empty" aria-label="Conversation map">
+          <p>The map of the conversation appears here once it starts.</p>
+        </section>
+      ) : (
+        <ConversationMap
+          graph={graph}
+          branch={branch}
+          onSelect={(id) => {
+            if (!busy) setAnchor(id);
+          }}
+        />
+      )}
 
       <main className="main">
         {error !== null && (
