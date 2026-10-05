@@ -56,11 +56,18 @@ version pinned in `package.json`).
 ```sh
 pnpm install
 pnpm check   # typecheck, lint, format check, tests and build
+pnpm e2e     # end-to-end tests against the production build (Playwright)
+pnpm --filter @diagram-4-llm/web dev   # run the web app locally
 ```
 
-| Path                             | Contents                                                                            |
-| -------------------------------- | ----------------------------------------------------------------------------------- |
-| [`packages/core`](packages/core) | Graph model, invariants, context assembly and data format. Pure TypeScript, no I/O. |
+End-to-end tests need Chromium for the installed Playwright version
+(`pnpm --filter @diagram-4-llm/web exec playwright install chromium`). To use
+an existing Chromium instead, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to its path.
+
+| Path                             | Contents                                                                                          |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| [`packages/core`](packages/core) | Graph model, invariants, context assembly and data format. Pure TypeScript, no I/O.               |
+| [`apps/web`](apps/web)           | Browser app. Currently a shell with a strict Content Security Policy; phase 1 builds the UI here. |
 
 ## How this project is built
 
