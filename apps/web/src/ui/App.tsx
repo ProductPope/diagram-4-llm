@@ -83,9 +83,11 @@ export function App({ openStore, settingsStorage }: AppProps) {
 
   useEffect(() => {
     // Results that arrive after the component is gone must not update it.
+    // Read through a function: the flag changes during the awaits below.
     let active = true;
+    const isActive = () => active;
     void openStore().then(async (opened) => {
-      if (!active) return;
+      if (!isActive()) return;
       if (!opened.ok) {
         setStorage({
           status: "failed",
@@ -95,7 +97,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
       }
       setStorage({ status: "ready", store: opened.value });
       const listed = await opened.value.list();
-      if (!active) return;
+      if (!isActive()) return;
       if (listed.ok) setConversations(listed.value);
       else setError(describeStorageError(listed.error));
     });
