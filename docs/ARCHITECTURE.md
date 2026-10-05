@@ -205,9 +205,13 @@ Two adapters cover the intended providers. See
 | `anthropic`         | Anthropic Messages API                                                                                           |
 | `openai-compatible` | Ollama, LM Studio, llama.cpp server, vLLM, and hosted services that implement the OpenAI Chat Completions format |
 
-Adapters translate `ProviderMessage[]` to the provider's format and stream
-results back as a common sequence of events (text delta, usage, finish,
-error). Adapter selection and the model are stored per node in its
+Adapters live in `apps/web/src/providers` and are implemented as described
+in [ADR 0005](adr/0005-adapter-implementation.md). Each one translates an
+assembled context to the provider's format and returns an async iterable of
+events that never throws: text deltas, then exactly one terminal event,
+`done` (with a stop reason normalised to `end`, `max-tokens`, `refusal` or
+`other`, and usage when the provider reports it), `aborted` or `error`.
+Adapter selection and the model are stored per node in its
 `GenerationRecord`, so a conversation can mix models across branches.
 
 Browser-specific constraints:
