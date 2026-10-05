@@ -82,7 +82,10 @@ export function App({ openStore, settingsStorage }: AppProps) {
   const graph = useStoreValue(current);
 
   useEffect(() => {
+    // Results that arrive after the component is gone must not update it.
+    let active = true;
     void openStore().then(async (opened) => {
+      if (!active) return;
       if (!opened.ok) {
         setStorage({
           status: "failed",
@@ -92,9 +95,13 @@ export function App({ openStore, settingsStorage }: AppProps) {
       }
       setStorage({ status: "ready", store: opened.value });
       const listed = await opened.value.list();
+      if (!active) return;
       if (listed.ok) setConversations(listed.value);
       else setError(describeStorageError(listed.error));
     });
+    return () => {
+      active = false;
+    };
   }, [openStore]);
 
   // Saves at most every SAVE_DELAY_MS while the conversation changes, so a

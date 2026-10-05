@@ -1,9 +1,16 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { IDBFactory } from "fake-indexeddb";
-import { expect, it } from "vitest";
+import { afterEach, expect, it } from "vitest";
 
 import { openConversationStore } from "../storage/conversation-store";
 import { App } from "./App";
+
+// Vitest globals are off, so Testing Library cannot register its automatic
+// cleanup. Unmounting explicitly stops async work started by the component
+// from updating it after the test environment is torn down.
+afterEach(() => {
+  cleanup();
+});
 
 it("starts with no conversations and asks for a provider before sending", async () => {
   render(
