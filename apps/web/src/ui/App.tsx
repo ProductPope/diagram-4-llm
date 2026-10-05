@@ -79,6 +79,9 @@ export function App({ openStore, settingsStorage }: AppProps) {
   const [draft, setDraft] = useState("");
   const [controller, setController] = useState<AbortController | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<
+    "saved" | "unsaved" | "saving" | "failed"
+  >("saved");
   const graph = useStoreValue(current);
 
   useEffect(() => {
@@ -108,22 +111,33 @@ export function App({ openStore, settingsStorage }: AppProps) {
 
   // Saves at most every SAVE_DELAY_MS while the conversation changes, so a
   // long streamed answer is saved as it arrives, and immediately when
-  // switching away.
+  // switching away. The save state is shown to the user and guards closing
+  // the page, because the last changes can still be in flight.
   useEffect(() => {
     if (current === null || storage.status !== "ready") return;
     const store = storage.store;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let changes = 0;
+    // A function, because both values change while a save is awaited.
+    const nothingNewSince = (savedChanges: number) =>
+      timer === undefined && changes === savedChanges;
     const save = async () => {
       timer = undefined;
+      const savedChanges = changes;
+      setSaveState("saving");
       const saved = await store.save(current.get(), env.now());
       if (!saved.ok) {
+        setSaveState("failed");
         setError(describeStorageError(saved.error));
         return;
       }
+      if (nothingNewSince(savedChanges)) setSaveState("saved");
       const listed = await store.list();
       if (listed.ok) setConversations(listed.value);
     };
     const unsubscribe = current.subscribe(() => {
+      changes += 1;
+      setSaveState("unsaved");
       timer ??= setTimeout(() => void save(), SAVE_DELAY_MS);
     });
     return () => {
@@ -134,6 +148,17 @@ export function App({ openStore, settingsStorage }: AppProps) {
       }
     };
   }, [current, storage]);
+
+  useEffect(() => {
+    if (saveState === "saved") return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+    };
+  }, [saveState]);
 
   const busy = controller !== null;
   const branch = graph === null ? [] : visibleBranch(graph, anchor);
@@ -317,6 +342,9 @@ export function App({ openStore, settingsStorage }: AppProps) {
             }}
           />
         </label>
+        <p className="save-state" role="status">
+          {saveStateText(saveState)}
+        </p>
         {storage.status === "failed" && (
           <p role="alert">Conversations cannot be saved: {storage.message}</p>
         )}
@@ -449,4 +477,18 @@ function continuationOf(
 function titleFrom(content: string): string {
   const firstLine = content.trim().split("\n")[0] ?? "";
   return firstLine.length > 60 ? `${firstLine.slice(0, 59)}…` : firstLine;
+}
+
+function saveStateText(
+  state: "saved" | "unsaved" | "saving" | "failed",
+): string {
+  switch (state) {
+    case "saved":
+      return "All changes saved";
+    case "unsaved":
+    case "saving":
+      return "Saving…";
+    case "failed":
+      return "Changes could not be saved";
+  }
 }

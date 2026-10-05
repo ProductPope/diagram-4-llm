@@ -247,3 +247,9 @@ button {
   display: flex;
   justify-content: flex-end;
 }
+
+.save-state {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
