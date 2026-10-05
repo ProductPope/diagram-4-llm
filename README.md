@@ -65,14 +65,19 @@ pnpm check   # typecheck, lint, format check, tests and build
 ## How this project is built
 
 This project is developed with substantial help from AI coding tools, under
-the direction and review of a human maintainer. The process is designed so
-that you can judge the result on evidence rather than trust:
+the direction of a human maintainer. The process is designed so that you can
+judge the result on evidence rather than trust:
 
 - design decisions are written down as ADRs before they are implemented,
 - domain logic is isolated in a pure package with unit and property-based
   tests, and CI runs them on every change,
-- every change is a small, reviewed commit,
+- every change goes through a pull request made of small commits that
+  explain why the change is needed,
 - the rules given to AI agents are public in [CLAUDE.md](CLAUDE.md).
+
+The maintainer has authorised AI agents to merge their own pull requests once
+CI passes. Not every pull request is reviewed by a person before it is
+merged, so CI and the rules above are the gate.
 
 If you find code that does not meet that bar, please open an issue.
 
