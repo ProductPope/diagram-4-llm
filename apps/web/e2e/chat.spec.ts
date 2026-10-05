@@ -42,6 +42,10 @@ test("branches a conversation, sends only the branch's context, and keeps it aft
   page,
 }) => {
   const sent: SentMessage[][] = [];
+  const consoleErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
   await page.route(ENDPOINT, (route) => answerEveryRequest(route, sent));
   await page.goto("/");
 
@@ -50,11 +54,17 @@ test("branches a conversation, sends only the branch's context, and keeps it aft
   await page.getByRole("button", { name: "Save" }).click();
 
   const input = page.getByLabel("Message", { exact: true });
-  const userMessages = page.getByRole("listitem", { name: "Your message" });
+  const transcript = page.getByRole("list", { name: "Selected branch" });
+  const userMessages = transcript.getByRole("listitem", {
+    name: "Your message",
+  });
+  const map = page.getByRole("region", { name: "Conversation map" });
 
   await input.fill("Which database?");
   await input.press("Control+Enter");
-  await expect(page.getByText("Answer to: Which database?")).toBeVisible();
+  await expect(
+    transcript.getByText("Answer to: Which database?"),
+  ).toBeVisible();
 
   await input.fill("Tell me about PostgreSQL");
   await page.getByText(/^Context: 3 messages/).click();
@@ -63,16 +73,18 @@ test("branches a conversation, sends only the branch's context, and keeps it aft
   );
   await input.press("Control+Enter");
   await expect(
-    page.getByText("Answer to: Tell me about PostgreSQL"),
+    transcript.getByText("Answer to: Tell me about PostgreSQL"),
   ).toBeVisible();
 
   // Editing the second message forks the conversation at the first answer.
   await userMessages.nth(1).getByRole("button", { name: "Edit" }).click();
   await input.fill("Tell me about SQLite");
   await input.press("Control+Enter");
-  await expect(page.getByText("Answer to: Tell me about SQLite")).toBeVisible();
   await expect(
-    page.getByText("Answer to: Tell me about PostgreSQL"),
+    transcript.getByText("Answer to: Tell me about SQLite"),
+  ).toBeVisible();
+  await expect(
+    transcript.getByText("Answer to: Tell me about PostgreSQL"),
   ).toHaveCount(0);
 
   // The SQLite branch never saw the PostgreSQL branch.
@@ -87,8 +99,20 @@ test("branches a conversation, sends only the branch's context, and keeps it aft
     .getByRole("button", { name: "Previous version" })
     .click();
   await expect(
-    page.getByText("Answer to: Tell me about PostgreSQL"),
+    transcript.getByText("Answer to: Tell me about PostgreSQL"),
   ).toBeVisible();
+
+  // The map shows both branches; choosing a node there shows its branch.
+  await expect(map.locator(".map-node")).toHaveCount(6);
+  await map
+    .locator(".map-node", { hasText: "Answer to: Tell me about SQLite" })
+    .click();
+  await expect(
+    transcript.getByText("Answer to: Tell me about SQLite"),
+  ).toBeVisible();
+  await expect(
+    transcript.getByText("Answer to: Tell me about PostgreSQL"),
+  ).toHaveCount(0);
 
   const savedConversation = page
     .getByRole("navigation", { name: "Conversations" })
@@ -96,8 +120,15 @@ test("branches a conversation, sends only the branch's context, and keeps it aft
   await expect(savedConversation).toBeVisible();
   await page.reload();
   await savedConversation.click();
-  await expect(page.getByText("Answer to: Which database?")).toBeVisible();
-  await expect(page.getByText("Answer to: Tell me about SQLite")).toBeVisible();
+  await expect(
+    transcript.getByText("Answer to: Which database?"),
+  ).toBeVisible();
+  await expect(
+    transcript.getByText("Answer to: Tell me about SQLite"),
+  ).toBeVisible();
+
+  // Covers the Content Security Policy too: a blocked style or script logs an error.
+  expect(consoleErrors).toEqual([]);
 });
 
 test("asks for a provider before sending", async ({ page }) => {
