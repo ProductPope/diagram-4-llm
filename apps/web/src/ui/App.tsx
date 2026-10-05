@@ -2,6 +2,7 @@ import {
   createConversation,
   describeGraphError,
   isUsable,
+  setNodeMeta,
   type ConversationGraph,
   type GraphError,
   type NodeId,
@@ -210,6 +211,20 @@ export function App({ openStore, settingsStorage }: AppProps) {
     });
   };
 
+  // Collapsing is presentation state stored with the conversation, so it
+  // survives a reload and travels with an export.
+  const toggleCollapsed = (id: NodeId) => {
+    if (current === null) return;
+    const latest = current.get();
+    const meta = latest.meta.get(id) ?? {};
+    const updated = setNodeMeta(latest, id, {
+      ...meta,
+      collapsed: meta.collapsed !== true,
+    });
+    if (updated.ok) current.set(updated.value);
+    else setError(describeGraphError(updated.error));
+  };
+
   const send = (content: string) => {
     if (settings === null || parentId === undefined) return;
     let target = current;
@@ -396,6 +411,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
           onSelect={(id) => {
             if (!busy) setAnchor(id);
           }}
+          onToggleCollapsed={toggleCollapsed}
         />
       )}
 

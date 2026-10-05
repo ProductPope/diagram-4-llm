@@ -114,7 +114,7 @@ consecutive weeks and records the friction points in issues.
 **Progress** (updated with each merged change):
 
 - [x] Canvas with automatic tree layout, pan and zoom
-- [ ] Collapsible subtrees on the canvas
+- [x] Collapsible subtrees on the canvas (saved with the conversation)
 - [x] Fork by editing or regenerating; nothing is overwritten
 - [x] Reading pane for the selected branch
 - [x] Context inspector before sending (sources are shown as roles, not yet

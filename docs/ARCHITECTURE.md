@@ -258,8 +258,13 @@ Browser-specific constraints:
   buttons showing the role and the start of the message; activating one
   shows its branch in the reading pane, and the selected branch is
   highlighted. The view refits when turns are added. Manual positioning is
-  not planned for phase 1. Collapsing subtrees is planned. References are
-  drawn as dashed edges.
+  not planned for phase 1. Any node with replies can be collapsed: its
+  descendants are hidden from the map and the node shows how many it hides.
+  The collapsed flag is node presentation state (`NodeMeta.collapsed`), so it
+  is saved and exported with the conversation and never affects context. If
+  the selected branch continues below a collapsed node, the map shows that
+  node, highlighted, in place of the hidden part. References are drawn as
+  dashed edges.
 - **Reading pane:** a linear view of the selected branch: the path to a
   selected turn, continued through the newest child at each step, so a new
   message sent from the end of the branch appears in it. Each turn shows
