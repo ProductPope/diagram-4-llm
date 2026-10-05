@@ -262,8 +262,12 @@ API keys stored in browser storage can be read by any script running on the
 page. The mitigations are:
 
 - no third-party scripts, analytics or fonts loaded at runtime,
-- a strict Content Security Policy that only allows connections to
-  user-configured endpoints,
+- a strict Content Security Policy in production builds: scripts and
+  styles only from the app itself, no inline scripts, and connections only
+  to HTTPS endpoints and local model servers on `localhost`. A static policy
+  cannot list each user-configured endpoint, so any HTTPS host is allowed;
+  a desktop build (phase 3) can narrow this. An end-to-end test checks that
+  the policy is enforced,
 - Markdown rendering with raw HTML disabled and links sanitised, because
   model output is untrusted input,
 - dependencies kept minimal, with lockfile-pinned versions and automated

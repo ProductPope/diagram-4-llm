@@ -1,12 +1,18 @@
 import js from "@eslint/js";
 import { defineConfig, globalIgnores } from "eslint/config";
+import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
 export default defineConfig(
-  globalIgnores(["**/dist/", "**/coverage/"]),
+  globalIgnores([
+    "**/dist/",
+    "**/coverage/",
+    "**/test-results/",
+    "**/playwright-report/",
+  ]),
   js.configs.recommended,
   {
-    files: ["**/*.ts"],
+    files: ["**/*.{ts,tsx}"],
     extends: [
       tseslint.configs.strictTypeChecked,
       tseslint.configs.stylisticTypeChecked,
@@ -78,6 +84,22 @@ export default defineConfig(
         },
       ],
     },
+  },
+  {
+    // The web app splits browser code and Node.js tooling into two
+    // TypeScript projects, which the project service does not discover.
+    files: ["apps/web/**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: ["apps/web/tsconfig.json", "apps/web/tsconfig.node.json"],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
+    files: ["apps/web/src/**/*.{ts,tsx}"],
+    extends: [reactHooks.configs.flat.recommended],
   },
   {
     files: ["**/*.js"],
