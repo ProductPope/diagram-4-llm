@@ -272,9 +272,15 @@ Browser-specific constraints:
 - **Context inspector:** the assembled messages, their sources and the
   token estimate, available before sending and stored with each answer.
 
-Performance budget: panning and zooming stay above 50 frames per second on a
-generated graph of 1,000 nodes on a mid-range laptop. This is checked with a
-benchmark fixture before phase 1 closes.
+Performance budget: an end-to-end test imports a generated conversation of
+1,000 turns and requires the first render within 3 s and a branch switch
+within 1 s, about three times the times measured in headless Chromium (about
+0.8 s and 0.35 s). Profiling showed that most of the switch time is the
+browser re-rendering the map's DOM, not application code, so memoising
+components did not help and was not kept. In trees of more than 60 turns the
+map follows the end of the selected branch instead of fitting the whole
+tree, which would make nodes too small to read. Frame rates while panning
+are not measured: headless Chromium does not give meaningful numbers.
 
 Accessibility: every action is available from the keyboard, focus is always
 visible, and the reading pane works with screen readers. The canvas is a

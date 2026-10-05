@@ -103,18 +103,45 @@ export function ConversationMap({ graph, branch, onSelect }: Props) {
         minZoom={0.1}
       >
         <Controls showInteractive={false} />
-        <FitWhenNodesChange count={nodes.length} />
+        <FollowBranch
+          total={nodes.length}
+          branchIds={branch.map((turn) => turn.id)}
+        />
       </ReactFlow>
     </section>
   );
 }
 
-/** Keeps new turns in view: the map refits whenever the number of nodes changes. */
-function FitWhenNodesChange({ count }: { readonly count: number }) {
+/** Up to this many turns the whole tree is shown at once. */
+const FIT_ALL_LIMIT = 60;
+/** In larger trees the view follows the last turns of the selected branch. */
+const BRANCH_TAIL = 6;
+
+/**
+ * Keeps the relevant part of the conversation in view as it changes: the
+ * whole tree while it is small enough to read at once, otherwise the end of
+ * the selected branch, so the user always sees where the next message goes.
+ */
+function FollowBranch({
+  total,
+  branchIds,
+}: {
+  readonly total: number;
+  readonly branchIds: readonly NodeId[];
+}) {
   const { fitView } = useReactFlow();
+  const tail = branchIds.slice(-BRANCH_TAIL).join(" ");
   useEffect(() => {
-    void fitView({ duration: 200 });
-  }, [count, fitView]);
+    const nodes =
+      total <= FIT_ALL_LIMIT
+        ? undefined
+        : tail.split(" ").map((id) => ({ id }));
+    void fitView({
+      duration: 200,
+      maxZoom: 1,
+      ...(nodes === undefined ? {} : { nodes }),
+    });
+  }, [total, tail, fitView]);
   return null;
 }
 
