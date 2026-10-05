@@ -63,7 +63,8 @@ Read before changing anything:
 
 ## Definition of done
 
-A change is done only when all of the following pass locally:
+A change is done only when all of the following pass locally (`pnpm check`
+runs the first four and the format check):
 
 1. typecheck
 2. lint

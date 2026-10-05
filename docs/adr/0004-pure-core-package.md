@@ -1,6 +1,6 @@
 # 0004. Domain logic in a pure, framework-free core package
 
-Status: Proposed
+Status: Accepted
 Date: 2026-10-05
 
 ## Context
@@ -17,12 +17,16 @@ assembly and the JSON format. It:
 
 - performs no I/O (no network, storage, timers or global state),
 - depends on no UI framework,
-- receives time and ID generation as injected functions, so tests are
-  deterministic,
+- receives IDs and timestamps from the caller as plain values, so the same
+  inputs always produce the same graph,
 - is tested with unit tests and property-based tests.
 
-`apps/web` depends on `core`. `core` never depends on `apps/web`, and this
-rule is enforced by lint.
+`apps/web` depends on `core`. `core` never depends on `apps/web`.
+
+These rules are enforced mechanically. The core's build configuration
+includes no DOM or Node.js type definitions, so I/O APIs do not compile.
+Lint rules restrict Node.js, UI and storage imports, and the `Date`,
+`fetch`, timer and `Math.random` globals.
 
 ## Alternatives considered
 

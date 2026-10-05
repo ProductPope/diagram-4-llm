@@ -1,6 +1,6 @@
 # 0001. Conversation graph is a tree of turns plus explicit references
 
-Status: Proposed
+Status: Accepted
 Date: 2026-10-05
 
 ## Context
