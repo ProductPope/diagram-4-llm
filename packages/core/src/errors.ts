@@ -21,6 +21,7 @@ export type GraphError =
   | { readonly code: "not-a-turn"; readonly id: NodeId }
   | { readonly code: "not-a-user-turn"; readonly id: NodeId }
   | { readonly code: "not-streaming"; readonly id: NodeId }
+  | { readonly code: "inconsistent-status"; readonly id: NodeId }
   | {
       readonly code: "summary-range";
       readonly fromId: NodeId;
@@ -64,6 +65,8 @@ export function describeGraphError(error: GraphError): string {
       return `Node ${error.id} is not a user turn.`;
     case "not-streaming":
       return `Turn ${error.id} is not streaming.`;
+    case "inconsistent-status":
+      return `Turn ${error.id} has a stop reason or error that does not match its status.`;
     case "summary-range":
       return `${error.fromId} is not ${error.toId} or one of its ancestors.`;
     case "summary-not-finished":

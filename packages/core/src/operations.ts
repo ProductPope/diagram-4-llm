@@ -13,6 +13,7 @@ import type {
   NodeId,
   NodeMeta,
   ProviderErrorInfo,
+  StopReason,
   SummaryNode,
   TokenUsage,
   UserTurn,
@@ -129,7 +130,11 @@ export function appendAssistantContent(
 }
 
 export type AssistantOutcome =
-  | { readonly status: "complete"; readonly usage?: TokenUsage }
+  | {
+      readonly status: "complete";
+      readonly stopReason: StopReason;
+      readonly usage?: TokenUsage;
+    }
   | { readonly status: "aborted"; readonly usage?: TokenUsage }
   | {
       readonly status: "error";
@@ -150,6 +155,9 @@ export function finishAssistantTurn(
   const finished: AssistantTurn = {
     ...turn.value,
     status: outcome.status,
+    ...(outcome.status === "complete"
+      ? { stopReason: outcome.stopReason }
+      : {}),
     ...(outcome.status === "error" ? { error: outcome.error } : {}),
     generation:
       outcome.usage === undefined

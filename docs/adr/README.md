@@ -12,6 +12,7 @@ supersedes the old one.
 | [0003](0003-provider-adapters.md)        | Two provider adapters: Anthropic and OpenAI-compatible                    | Accepted |
 | [0004](0004-pure-core-package.md)        | Domain logic in a pure, framework-free core package                       | Accepted |
 | [0005](0005-adapter-implementation.md)   | Anthropic adapter on the official SDK, OpenAI-compatible adapter on fetch | Accepted |
+| [0006](0006-record-stop-reason.md)       | Record why a complete answer ended                                        | Accepted |
 
 Records move from Proposed to Accepted when phase 0 implementation confirms
 them.

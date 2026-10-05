@@ -1,12 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { TokenUsage } from "@diagram-4-llm/core";
+import type { StopReason, TokenUsage } from "@diagram-4-llm/core";
 
-import type {
-  ChatRequest,
-  ProviderAdapter,
-  StopReason,
-  StreamEvent,
-} from "./types";
+import type { ChatRequest, ProviderAdapter, StreamEvent } from "./types";
 
 /**
  * The Messages API requires an output limit. Answers are streamed, so a

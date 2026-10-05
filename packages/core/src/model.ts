@@ -24,6 +24,12 @@ export interface UserTurn {
 
 export type AssistantStatus = "streaming" | "complete" | "aborted" | "error";
 
+/**
+ * Why a complete answer ended, normalised across providers. `max-tokens`
+ * means the answer was cut off by an output or context limit.
+ */
+export type StopReason = "end" | "max-tokens" | "refusal" | "other";
+
 export interface AssistantTurn {
   readonly kind: "assistant";
   readonly id: NodeId;
@@ -32,6 +38,9 @@ export interface AssistantTurn {
   /** Partial while streaming, and kept as-is if the turn is aborted or fails. */
   readonly content: string;
   readonly status: AssistantStatus;
+  /** Set exactly when `status` is `complete`. */
+  readonly stopReason?: StopReason;
+  /** Set exactly when `status` is `error`. */
   readonly error?: ProviderErrorInfo;
   readonly generation: GenerationRecord;
   readonly createdAt: ISODate;

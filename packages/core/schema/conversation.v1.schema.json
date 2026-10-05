@@ -121,6 +121,15 @@
                   "error"
                 ]
               },
+              "stopReason": {
+                "type": "string",
+                "enum": [
+                  "end",
+                  "max-tokens",
+                  "refusal",
+                  "other"
+                ]
+              },
               "error": {
                 "type": "object",
                 "properties": {
