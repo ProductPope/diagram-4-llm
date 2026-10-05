@@ -234,3 +234,16 @@ button {
 .map .edge-ref path {
   stroke-dasharray: 4 4;
 }
+
+.import {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.conversation-actions {
+  display: flex;
+  justify-content: flex-end;
+}
