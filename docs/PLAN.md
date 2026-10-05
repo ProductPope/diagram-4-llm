@@ -204,5 +204,4 @@ reveals a case they do not cover.
 ## 10. Open questions
 
 - [ ] Weekly time budget. Determines whether phase 1 is weeks or months.
-- [ ] License. MIT is the working assumption, not a decision.
 - [ ] Product name. `diagram-4-llm` is the repository name.

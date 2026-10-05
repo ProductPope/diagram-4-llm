@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Conversation graph model, invariants, context assembly and data format. Pure TypeScript, no I/O.",
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": {

@@ -10,6 +10,9 @@ exactly what context each branch sends to the model.
 > sending, see the whole conversation as a tree, and keep conversations in
 > the browser. The [plan](docs/PLAN.md) tracks what phase 1 still lacks.
 
+**Try it:** https://productpope.github.io/diagram-4-llm/ (runs entirely in
+your browser; bring an Anthropic API key or a local model server).
+
 ## The problem
 
 Long conversations with an LLM drift across several topics. In a linear chat
@@ -71,7 +74,9 @@ Open **Settings** in the app and choose a provider:
   through CORS. For Ollama, start it with `OLLAMA_ORIGINS` set to the
   app's address, for example
   `OLLAMA_ORIGINS=http://localhost:5173 ollama serve` for the development
-  server. For other servers, see their CORS settings.
+  server, or `OLLAMA_ORIGINS=https://productpope.github.io` for the hosted
+  app. Your browser may ask for permission before a website can reach a
+  server on your own computer. For other servers, see their CORS settings.
 - **Anthropic** with your own API key.
 
 The API key is stored in your browser's local storage and sent only to the
@@ -111,4 +116,4 @@ If you find code that does not meet that bar, please open an issue.
 
 ## License
 
-Not yet chosen.
+[MIT](LICENSE)

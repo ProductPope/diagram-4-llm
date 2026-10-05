@@ -1,6 +1,7 @@
 {
   "name": "diagram-4-llm",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.28.0",
   "engines": {
