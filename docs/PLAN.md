@@ -129,7 +129,7 @@ consecutive weeks and records the friction points in issues.
       existing conversation)
 - [ ] Keyboard navigation of the tree (all controls are reachable by
       keyboard, but there are no tree navigation shortcuts yet)
-- [ ] Markdown rendering in the reading pane (plain text for now)
+- [x] Markdown rendering of answers (no raw HTML; images shown as links)
 - [ ] Canvas performance budget checked with 1,000 nodes
 
 ### Phase 2: Context control
@@ -204,5 +204,4 @@ reveals a case they do not cover.
 ## 10. Open questions
 
 - [ ] Weekly time budget. Determines whether phase 1 is weeks or months.
-- [ ] License. MIT is the working assumption, not a decision.
 - [ ] Product name. `diagram-4-llm` is the repository name.

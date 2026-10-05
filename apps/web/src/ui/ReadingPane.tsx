@@ -6,6 +6,7 @@ import type {
 } from "@diagram-4-llm/core";
 
 import { siblingsOf } from "../app/branch";
+import { MarkdownContent } from "./MarkdownContent";
 
 interface Props {
   readonly graph: ConversationGraph;
@@ -17,8 +18,8 @@ interface Props {
 }
 
 /**
- * The selected branch as a linear transcript. Content is rendered as plain
- * text: model output is untrusted, so no HTML from it ever reaches the page.
+ * The selected branch as a linear transcript. Answers are rendered as
+ * Markdown without raw HTML; the user's own messages as plain text.
  */
 export function ReadingPane({
   graph,
@@ -94,7 +95,11 @@ export function ReadingPane({
                 </button>
               )}
             </header>
-            <div className="turn-content">{turn.content}</div>
+            {turn.kind === "assistant" ? (
+              <MarkdownContent text={turn.content} />
+            ) : (
+              <div className="turn-content">{turn.content}</div>
+            )}
             {turn.kind === "assistant" && <AnswerStatus turn={turn} />}
           </li>
         );

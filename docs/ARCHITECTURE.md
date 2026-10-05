@@ -264,8 +264,9 @@ Browser-specific constraints:
   selected turn, continued through the newest child at each step, so a new
   message sent from the end of the branch appears in it. Each turn shows
   its sibling versions; editing a message or regenerating an answer adds a
-  sibling instead of changing anything. Content is rendered as plain text
-  for now; Markdown rendering, with raw HTML disabled, is planned.
+  sibling instead of changing anything. Answers are rendered as Markdown
+  (`apps/web/src/ui/MarkdownContent.tsx`); the user's own messages as plain
+  text.
 - **Composer:** sends to the selected node's branch. Shows the references
   attached to the draft.
 - **Context inspector:** the assembled messages, their sources and the
@@ -292,8 +293,11 @@ page. The mitigations are:
   cannot list each user-configured endpoint, so any HTTPS host is allowed;
   a desktop build (phase 3) can narrow this. An end-to-end test checks that
   the policy is enforced,
-- Markdown rendering with raw HTML disabled and links sanitised, because
-  model output is untrusted input,
+- Markdown rendering that produces React elements, never `innerHTML`, with
+  raw HTML dropped and link targets sanitised, because model output is
+  untrusted input. Images in answers are shown as links instead of being
+  loaded, so a crafted answer cannot make the browser send conversation
+  data to another server by loading an image URL,
 - dependencies kept minimal, with lockfile-pinned versions and automated
   security advisories.
 

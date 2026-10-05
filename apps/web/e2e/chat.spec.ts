@@ -85,6 +85,9 @@ test("branches a conversation, sends only the branch's context, and keeps it aft
     .getByRole("navigation", { name: "Conversations" })
     .getByRole("button", { name: "Which database?" });
   await expect(savedConversation).toBeVisible();
+  await expect(
+    page.getByRole("status").filter({ hasText: "All changes saved" }),
+  ).toBeVisible();
   await page.reload();
   await savedConversation.click();
   await expect(
