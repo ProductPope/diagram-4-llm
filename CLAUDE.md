@@ -22,7 +22,7 @@ Read before changing anything:
 ## Architecture rules
 
 - `packages/core` performs no I/O and imports no UI framework, browser API or
-  storage library. Time and ID generation are injected.
+  storage library. IDs and timestamps are supplied by the caller as values.
 - `apps/web` may import `core`. `core` must never import `apps/web`.
 - Context assembly never drops, truncates or reorders content. Over-budget
   context is reported to the caller, never fixed silently.
