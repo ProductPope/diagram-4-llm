@@ -1,12 +1,7 @@
-import type { TokenUsage } from "@diagram-4-llm/core";
+import type { StopReason, TokenUsage } from "@diagram-4-llm/core";
 
 import { readServerSentEvents } from "./sse";
-import type {
-  ChatRequest,
-  ProviderAdapter,
-  StopReason,
-  StreamEvent,
-} from "./types";
+import type { ChatRequest, ProviderAdapter, StreamEvent } from "./types";
 
 export interface OpenAICompatibleConfig {
   /** For example `http://localhost:11434/v1` for Ollama. */

@@ -3,7 +3,12 @@ import type { GraphError } from "./errors.js";
 import type { ConversationGraph } from "./graph.js";
 import type { ContextManifestEntry, GraphNode } from "./model.js";
 import { err, ok, type Result } from "./result.js";
-import { checkAssistantParent, checkSummary, checkUserTurn } from "./rules.js";
+import {
+  checkAssistantParent,
+  checkAssistantState,
+  checkSummary,
+  checkUserTurn,
+} from "./rules.js";
 import { graphNodeSchema } from "./schema.js";
 import { z } from "zod";
 
@@ -39,8 +44,9 @@ function checkNewNode(
     case "summary":
       return checkSummary(graph, node);
     case "assistant": {
-      const parentViolation = checkAssistantParent(graph, node.parentId);
-      if (parentViolation !== null) return parentViolation;
+      const violation =
+        checkAssistantParent(graph, node.parentId) ?? checkAssistantState(node);
+      if (violation !== null) return violation;
       // The recorded context must be the one the graph implies, so that the
       // context inspector can be trusted for past answers too.
       const expected = assembleForUserTurn(graph, node.parentId, {

@@ -62,6 +62,7 @@ interface AssistantTurn {
   parentId: NodeId; // always a UserTurn
   content: string; // partial while streaming, or if aborted or errored
   status: "streaming" | "complete" | "aborted" | "error";
+  stopReason?: "end" | "max-tokens" | "refusal" | "other"; // exactly when complete
   error?: { code: string; message: string };
   generation: GenerationRecord;
   createdAt: ISODate;
@@ -124,8 +125,8 @@ empty answers would give the model an incomplete or empty message.
    the turn's own path (that would duplicate context), and point to usable
    turns or to summaries.
 5. **Immutability.** A node's content, parent and references never change
-   once it is created, except for `AssistantTurn.content`, `status`, `error`
-   and `usage` while `status` is `streaming`. Editing a message creates a
+   once it is created, except for `AssistantTurn.content`, `status`,
+   `stopReason`, `error` and `usage` while `status` is `streaming`. Editing a message creates a
    sibling. Editing a summary creates a new summary with `revises` set to a
    summary of the same range.
 6. **Valid summary range.** Both ends are turns, `covers.toId` is usable,
@@ -135,6 +136,10 @@ empty answers would give the model an incomplete or empty message.
    match the context the graph implies for that turn's parent.
 8. **Non-empty content.** User turns and summaries have content other than
    whitespace.
+9. **Consistent final state.** An assistant turn has a `stopReason` exactly
+   when its status is `complete`, and an `error` exactly when its status is
+   `error`. A complete answer that was cut off by a limit or refused by the
+   model is recorded as such ([ADR 0006](adr/0006-record-stop-reason.md)).
 
 ### 2.2 Why a tree plus references, not a general DAG
 
@@ -232,6 +237,9 @@ Browser-specific constraints:
   `NodeMeta`. The runtime schema is written with Zod. The published JSON
   Schema, `packages/core/schema/conversation.v1.schema.json`, is generated
   from it, and a test fails if the two drift apart.
+- Until the first public release the format may change compatibly
+  without a version change ([ADR 0006](adr/0006-record-stop-reason.md)).
+  From that release on, any change increases `formatVersion`.
 - Import parses the document against the schema, rejecting unknown fields,
   then replays the nodes through `insertNode`. Errors name the failing field
   or the index and ID of the failing node. A document is never partially

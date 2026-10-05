@@ -17,6 +17,7 @@ import {
   type GraphNode,
   type NodeId,
   type Result,
+  type StopReason,
 } from "../src/index.js";
 import { CREATED_AT, newGraph, unwrap } from "./helpers.js";
 
@@ -29,7 +30,12 @@ type Command =
     }
   | { op: "start"; parent: number }
   | { op: "append"; target: number; text: string }
-  | { op: "finish"; target: number; status: "complete" | "aborted" | "error" }
+  | {
+      op: "finish";
+      target: number;
+      status: "complete" | "aborted" | "error";
+      stopReason: StopReason;
+    }
   | {
       op: "summary";
       from: number;
@@ -67,6 +73,12 @@ const command: fc.Arbitrary<Command> = fc.oneof(
       "complete" as const,
       "aborted" as const,
       "error" as const,
+    ),
+    stopReason: fc.constantFrom(
+      "end" as const,
+      "max-tokens" as const,
+      "refusal" as const,
+      "other" as const,
     ),
   }),
   fc.record({
@@ -134,7 +146,9 @@ function apply(
         pick(graph, c.target, ["assistant"]),
         c.status === "error"
           ? { status: "error", error: { code: "e", message: "" } }
-          : { status: c.status },
+          : c.status === "complete"
+            ? { status: "complete", stopReason: c.stopReason }
+            : { status: "aborted" },
       );
     case "summary": {
       // Usually an ancestor of `toId`, sometimes an arbitrary turn, so that
@@ -185,6 +199,10 @@ function checkInvariants(graph: ConversationGraph): void {
     (position.get(target) ?? Infinity) < (position.get(self) ?? -Infinity);
 
   for (const node of graph.nodes.values()) {
+    if (node.kind === "assistant") {
+      expect(node.stopReason !== undefined).toBe(node.status === "complete");
+      expect(node.error !== undefined).toBe(node.status === "error");
+    }
     if (node.kind === "summary") {
       expect(before(node.covers.toId, node.id)).toBe(true);
       expect(

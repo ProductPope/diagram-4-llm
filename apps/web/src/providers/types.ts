@@ -3,6 +3,7 @@ import type {
   AssembledContext,
   GenerationParams,
   ProviderErrorInfo,
+  StopReason,
   TokenUsage,
 } from "@diagram-4-llm/core";
 
@@ -11,9 +12,6 @@ export interface ChatRequest {
   readonly context: AssembledContext;
   readonly params: GenerationParams;
 }
-
-/** Why the model stopped, normalised across providers. */
-export type StopReason = "end" | "max-tokens" | "refusal" | "other";
 
 /**
  * Events of one streamed answer. A stream yields any number of `text`

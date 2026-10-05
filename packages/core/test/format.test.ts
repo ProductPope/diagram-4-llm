@@ -80,6 +80,27 @@ describe("export and import", () => {
     });
   });
 
+  it("rejects a stop reason or error that does not match the status", () => {
+    for (const change of [
+      { status: "aborted" },
+      { stopReason: undefined },
+      { error: { code: "x", message: "y" } },
+    ]) {
+      const document = viaJson(sampleDocument()) as {
+        nodes: Record<string, unknown>[];
+      };
+      const answer = document.nodes[1];
+      if (answer === undefined) throw new Error("fixture has no answer");
+      Object.assign(answer, change);
+      if (answer.stopReason === undefined) delete answer.stopReason;
+      expect(errorOf(importConversation(document))).toMatchObject({
+        code: "invalid-node",
+        nodeId: "A1",
+        error: { code: "inconsistent-status", id: "A1" },
+      });
+    }
+  });
+
   it("rejects metadata for a node that does not exist", () => {
     const document = { ...sampleDocument(), meta: { ghost: { title: "x" } } };
     expect(errorOf(importConversation(viaJson(document)))).toEqual({

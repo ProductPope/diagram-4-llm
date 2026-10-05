@@ -193,13 +193,32 @@ describe("assistant turns", () => {
     });
   });
 
+  it("records why a complete answer ended", () => {
+    const graph = unwrap(
+      finishAssistantTurn(base(), "A-stream", {
+        status: "complete",
+        stopReason: "max-tokens",
+      }),
+    );
+    expect(graph.nodes.get("A-stream")).toMatchObject({
+      status: "complete",
+      stopReason: "max-tokens",
+    });
+    expect(graph.nodes.get("A-stream")).not.toHaveProperty("error");
+  });
+
   it("rejects changes to a turn that is not streaming", () => {
     expect(errorOf(appendAssistantContent(base(), "A1", "more"))).toEqual({
       code: "not-streaming",
       id: "A1",
     });
     expect(
-      errorOf(finishAssistantTurn(base(), "U1", { status: "complete" })),
+      errorOf(
+        finishAssistantTurn(base(), "U1", {
+          status: "complete",
+          stopReason: "end",
+        }),
+      ),
     ).toEqual({
       code: "not-streaming",
       id: "U1",
@@ -209,6 +228,7 @@ describe("assistant turns", () => {
   it("rejects usage values outside the data format", () => {
     const result = finishAssistantTurn(base(), "A-stream", {
       status: "complete",
+      stopReason: "end",
       usage: { inputTokens: -1, outputTokens: 0 },
     });
     expect(errorOf(result)).toMatchObject({ code: "invalid-node" });

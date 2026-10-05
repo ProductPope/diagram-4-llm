@@ -5,7 +5,7 @@ import {
   isUsable,
   type ConversationGraph,
 } from "./graph.js";
-import type { NodeId, SummaryNode } from "./model.js";
+import type { AssistantTurn, NodeId, SummaryNode } from "./model.js";
 
 // Structural rules shared by graph operations, context assembly of drafts,
 // and import. Each returns the first violation found, or null.
@@ -84,4 +84,12 @@ export function checkSummary(
     }
   }
   return null;
+}
+
+/** A stop reason belongs to complete turns only, and an error to failed ones. */
+export function checkAssistantState(turn: AssistantTurn): GraphError | null {
+  const consistent =
+    (turn.stopReason !== undefined) === (turn.status === "complete") &&
+    (turn.error !== undefined) === (turn.status === "error");
+  return consistent ? null : { code: "inconsistent-status", id: turn.id };
 }

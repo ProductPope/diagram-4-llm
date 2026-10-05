@@ -64,6 +64,9 @@ export const assistantTurnSchema = z.strictObject({
   parentId: id,
   content: z.string(),
   status: z.enum(["streaming", "complete", "aborted", "error"]),
+  stopReason: z.exactOptional(
+    z.enum(["end", "max-tokens", "refusal", "other"]),
+  ),
   error: z.exactOptional(
     z.strictObject({ code: nonEmptyText, message: z.string() }),
   ),

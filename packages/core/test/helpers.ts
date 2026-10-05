@@ -68,5 +68,7 @@ export function answer(
 ): ConversationGraph {
   let next = startAnswer(graph, id, parentId);
   next = unwrap(appendAssistantContent(next, id, content));
-  return unwrap(finishAssistantTurn(next, id, { status: "complete" }));
+  return unwrap(
+    finishAssistantTurn(next, id, { status: "complete", stopReason: "end" }),
+  );
 }
