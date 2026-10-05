@@ -143,8 +143,10 @@ Candidates, prioritised after phase 2 based on observed use:
 ## 8. Reference scenarios
 
 These scenarios are the acceptance tests for the core package and, later,
-end-to-end tests. They are illustrative and will be replaced or extended with
-real, anonymised conversations from dogfooding.
+end-to-end tests. They are deliberately generic: the tool is not tied to any
+domain, so the scenarios exercise the graph operations rather than a
+particular kind of conversation. New scenarios are added when dogfooding
+reveals a case they do not cover.
 
 1. **Fork.** A conversation about choosing a database: R → A1. The user forks
    at A1 twice, asking about PostgreSQL in one branch and SQLite in the
@@ -180,8 +182,6 @@ real, anonymised conversations from dogfooding.
 
 ## 10. Open questions
 
-- [ ] A real conversation that went wrong, to replace the illustrative
-      scenarios in section 8.
 - [ ] Weekly time budget. Determines whether phase 1 is weeks or months.
 - [ ] License. MIT is the working assumption, not a decision.
 - [ ] Product name. `diagram-4-llm` is the repository name.
