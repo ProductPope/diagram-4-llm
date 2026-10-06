@@ -95,7 +95,7 @@ interface ContextManifest {
 }
 ```
 
-Presentation state (canvas position, collapsed flag, user-assigned title) is
+Presentation state (canvas position, collapsed flag, node title) is
 stored separately as `NodeMeta`, keyed by `NodeId`. It is mutable and never
 affects what is sent to a model.
 
@@ -255,7 +255,12 @@ Browser-specific constraints:
 - **Canvas:** React Flow renders the tree; the layout is computed by the
   app (`apps/web/src/app/layout.ts`) as a tidy tree: each leaf gets a column,
   each parent is centred over its children, each depth is a row. Nodes are
-  buttons showing the role and the start of the message; activating one
+  buttons showing the role and the node's title, or the start of the
+  message when it has none. If the user picks a model for titles in the
+  settings (none by default), each complete answer is titled by that model
+  right after it finishes, as part of the same task, so Stop also cancels
+  the title. The request contains only the answer, the title is stored as
+  `NodeMeta.title`, and neither is part of any context. Activating a node
   shows its branch in the reading pane, and the selected branch is
   highlighted. The view refits when turns are added. Manual positioning is
   not planned for phase 1. Any node with replies can be collapsed: its

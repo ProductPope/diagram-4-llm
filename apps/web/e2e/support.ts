@@ -22,19 +22,28 @@ function streamedAnswer(text: string): string {
   );
 }
 
-export async function answerEveryRequest(route: Route, sent: SentMessage[][]) {
+/** Answers each request with the text `reply` gives for the model and the last message. */
+export async function answerEveryRequest(
+  route: Route,
+  sent: SentMessage[][],
+  reply: (model: string, lastMessage: string) => string = (_, question) =>
+    `Answer to: ${question}`,
+) {
   const request = route.request();
   if (request.method() === "OPTIONS") {
     await route.fulfill({ status: 204, headers: CORS });
     return;
   }
-  const body = request.postDataJSON() as { messages: SentMessage[] };
+  const body = request.postDataJSON() as {
+    model: string;
+    messages: SentMessage[];
+  };
   sent.push(body.messages);
-  const question = body.messages.at(-1)?.content ?? "";
+  const lastMessage = body.messages.at(-1)?.content ?? "";
   await route.fulfill({
     status: 200,
     headers: { ...CORS, "content-type": "text/event-stream" },
-    body: streamedAnswer(`Answer to: ${question}`),
+    body: streamedAnswer(reply(body.model, lastMessage)),
   });
 }
 

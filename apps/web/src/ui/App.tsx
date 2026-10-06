@@ -31,6 +31,7 @@ import {
 } from "../chat/generate";
 import { uuidv7 } from "../chat/ids";
 import { createStore, type Store } from "../chat/store";
+import { titleAnswer } from "../chat/title";
 import {
   describeStorageError,
   type ConversationStore,
@@ -225,6 +226,29 @@ export function App({ openStore, settingsStorage }: AppProps) {
     else setError(describeGraphError(updated.error));
   };
 
+  // Runs as part of the answer's task, so Stop cancels it and the
+  // conversation cannot be switched away before the title is saved.
+  const addTitle = async (
+    store: Store<ConversationGraph>,
+    answerId: NodeId,
+    adapter: GenerationSettings["adapter"],
+    titleModel: string | undefined,
+    signal: AbortSignal,
+  ) => {
+    if (titleModel === undefined) return;
+    const titled = await titleAnswer(
+      store,
+      answerId,
+      adapter,
+      titleModel,
+      signal,
+    );
+    if (!titled.ok)
+      setError(
+        `The answer is saved, but its title could not be generated: ${titled.error.message}`,
+      );
+  };
+
   const send = (content: string) => {
     if (settings === null || parentId === undefined) return;
     let target = current;
@@ -246,24 +270,50 @@ export function App({ openStore, settingsStorage }: AppProps) {
       setEditing(null);
     }
     const store = target;
-    run(async (signal) =>
-      sendMessage(
+    const answerSettings = generation(settings);
+    run(async (signal) => {
+      const sent = await sendMessage(
         store,
         { parentId, refs: [], content },
-        generation(settings),
+        answerSettings,
         env,
         signal,
-      ),
-    );
+      );
+      if (sent.ok)
+        await addTitle(
+          store,
+          sent.value.assistantTurnId,
+          answerSettings.adapter,
+          settings.titleModel,
+          signal,
+        );
+      return sent;
+    });
   };
 
   const regenerate = (userTurnId: NodeId) => {
     if (settings === null || current === null) return;
     const store = current;
     setAnchor(userTurnId);
-    run(async (signal) =>
-      generateAnswer(store, userTurnId, generation(settings), env, signal),
-    );
+    const answerSettings = generation(settings);
+    run(async (signal) => {
+      const answered = await generateAnswer(
+        store,
+        userTurnId,
+        answerSettings,
+        env,
+        signal,
+      );
+      if (answered.ok)
+        await addTitle(
+          store,
+          answered.value,
+          answerSettings.adapter,
+          settings.titleModel,
+          signal,
+        );
+      return answered;
+    });
   };
 
   const startEditing = (turn: TurnNode) => {

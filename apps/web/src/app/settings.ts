@@ -6,12 +6,15 @@ import type { ProviderAdapter } from "../providers/types";
 
 /** Models offered when sending; the first is the default for new branches. */
 const modelList = z.array(z.string().min(1)).min(1);
+/** Titles map nodes when set; without it nodes show the start of a message. */
+const titleModel = z.exactOptional(z.string().min(1));
 
 const settingsSchema = z.discriminatedUnion("adapter", [
   z.strictObject({
     adapter: z.literal("anthropic"),
     apiKey: z.string().min(1),
     models: modelList,
+    titleModel,
     systemPrompt: z.string(),
   }),
   z.strictObject({
@@ -19,6 +22,7 @@ const settingsSchema = z.discriminatedUnion("adapter", [
     baseUrl: z.url(),
     apiKey: z.string(),
     models: modelList,
+    titleModel,
     systemPrompt: z.string(),
   }),
 ]);
