@@ -9,7 +9,8 @@ import type {
 
 export interface ChatRequest {
   readonly model: string;
-  readonly context: AssembledContext;
+  /** Only what is sent; the manifest describes it for the user. */
+  readonly context: Pick<AssembledContext, "system" | "messages">;
   readonly params: GenerationParams;
 }
 
