@@ -41,6 +41,19 @@ describe("provider settings", () => {
     expect(loadSettings(storage)).toEqual(settings);
   });
 
+  it("round-trips a model for node titles", () => {
+    const storage = memoryStorage();
+    const settings: ProviderSettings = {
+      adapter: "anthropic",
+      apiKey: "k",
+      models: ["claude-sonnet-5-5"],
+      titleModel: "claude-haiku-4-5",
+      systemPrompt: "",
+    };
+    saveSettings(settings, storage);
+    expect(loadSettings(storage)).toEqual(settings);
+  });
+
   it("reads settings saved with a single model as a list of one", () => {
     const storage = memoryStorage();
     storage.setItem(

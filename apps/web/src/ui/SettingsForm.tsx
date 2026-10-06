@@ -19,6 +19,7 @@ export function SettingsForm({ initial, onSave, onCancel }: Props) {
   );
   const [apiKey, setApiKey] = useState(initial?.apiKey ?? "");
   const [models, setModels] = useState(initial?.models.join("\n") ?? "");
+  const [titleModel, setTitleModel] = useState(initial?.titleModel ?? "");
   const [systemPrompt, setSystemPrompt] = useState(initial?.systemPrompt ?? "");
 
   const onSubmit = (event: SubmitEvent) => {
@@ -26,10 +27,16 @@ export function SettingsForm({ initial, onSave, onCancel }: Props) {
     const list = parseModelList(models);
     // The textarea is required, but it can still hold only whitespace.
     if (list.length === 0) return;
+    const common = {
+      apiKey,
+      models: list,
+      ...(titleModel.trim() === "" ? {} : { titleModel: titleModel.trim() }),
+      systemPrompt,
+    };
     onSave(
       adapter === "anthropic"
-        ? { adapter, apiKey, models: list, systemPrompt }
-        : { adapter, baseUrl, apiKey, models: list, systemPrompt },
+        ? { adapter, ...common }
+        : { adapter, baseUrl, ...common },
     );
   };
 
@@ -97,6 +104,21 @@ export function SettingsForm({ initial, onSave, onCancel }: Props) {
           }}
         />
       </label>
+      <label>
+        Model for node titles (optional)
+        <input
+          type="text"
+          value={titleModel}
+          onChange={(event) => {
+            setTitleModel(event.target.value);
+          }}
+        />
+      </label>
+      <p className="settings-note">
+        When set, this model gives each finished answer a short title on the
+        map. Each title is one extra small request, so a cheap or local model is
+        a good choice. Leave it empty to show the start of each answer.
+      </p>
       <label>
         System prompt (optional)
         <textarea

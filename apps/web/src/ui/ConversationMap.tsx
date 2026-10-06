@@ -25,6 +25,8 @@ interface TurnData extends Record<string, unknown> {
   readonly turn: TurnNode;
   readonly onBranch: boolean;
   readonly isTip: boolean;
+  /** A generated or user-given title, shown instead of the message start. */
+  readonly title: string | undefined;
   /** The one node in the tab order; arrow keys move focus from it. */
   readonly isActive: boolean;
   /** Present only for nodes with children. */
@@ -129,6 +131,7 @@ export function ConversationMap({
         turn: node,
         onBranch: onBranch.has(node.id),
         isTip: node.id === tipId,
+        title: graph.meta.get(node.id)?.title,
         isActive: node.id === activeId,
         ...(children.has(node.id) ? { fold: { hidden: hidden ?? 0 } } : {}),
         onSelect,
@@ -239,6 +242,7 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
     turn,
     onBranch,
     isTip,
+    title,
     isActive,
     fold,
     onSelect,
@@ -279,7 +283,7 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
         <span className="map-node-role">
           {turn.kind === "user" ? "You" : turn.generation.model}
         </span>
-        <span className="map-node-label">{labelOf(turn)}</span>
+        <span className="map-node-label">{title ?? labelOf(turn)}</span>
       </button>
       {fold !== undefined && (
         <button

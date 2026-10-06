@@ -122,7 +122,8 @@ consecutive weeks and records the friction points in issues.
 - [x] Anthropic and OpenAI-compatible adapters
 - [x] Model selectable for each answer from a configured list; a branch
       keeps the model that answered last (one provider at a time)
-- [ ] Automatic node titles (nodes show the start of the message)
+- [x] Automatic node titles for answers, by a model chosen in the settings
+      (off by default; user messages show their start)
 - [x] Streaming, cancellation, and error states that keep partial output
 - [x] Persistence in the browser
 - [x] Export and import of the JSON format (an import never overwrites an

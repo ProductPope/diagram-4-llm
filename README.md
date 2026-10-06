@@ -79,6 +79,11 @@ Open **Settings** in the app and choose a provider:
   server on your own computer. For other servers, see their CORS settings.
 - **Anthropic** with your own API key.
 
+Optionally, name a **model for node titles**. Each finished answer then gets
+a short title on the map, at the cost of one small extra request per answer,
+so a cheap or local model is a good choice. Without it, map nodes show the
+start of each message.
+
 The API key is stored in your browser's local storage and sent only to the
 provider you configure. Any script running on the page could read it; the
 app loads no third-party scripts and ships a strict Content Security Policy
