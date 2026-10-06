@@ -271,8 +271,10 @@ Browser-specific constraints:
   node, highlighted, in place of the hidden part. The map is one stop in
   the tab order; arrow keys then move focus along the layout (up to the
   parent, down to a reply on the selected branch or else the newest reply,
-  left and right between versions) and Enter shows the focused turn's
-  branch. Moving focus alone never changes the branch being read.
+  left and right between versions), Enter shows the focused turn's
+  branch, and E on a message of the user starts editing it, which forks
+  the conversation there. Moving focus alone never changes the branch
+  being read.
   References are drawn as dashed edges.
 - **Reading pane:** a linear view of the selected branch: the path to a
   selected turn, continued through the newest child at each step, so a new
@@ -282,7 +284,8 @@ Browser-specific constraints:
   (`apps/web/src/ui/MarkdownContent.tsx`); the user's own messages as plain
   text.
 - **Composer:** sends to the selected node's branch. Shows the references
-  attached to the draft.
+  attached to the draft. "/" typed outside a text field focuses it, and it
+  takes focus when editing a message starts.
 - **Context inspector:** the assembled messages, their sources and the
   token estimate, available before sending and stored with each answer.
 

@@ -33,6 +33,7 @@ interface TurnData extends Record<string, unknown> {
   readonly fold?: { readonly hidden: number };
   readonly onSelect: (id: NodeId) => void;
   readonly onToggleCollapsed: (id: NodeId) => void;
+  readonly onEdit: (turn: TurnNode) => void;
   readonly onFocusTurn: (id: NodeId) => void;
   readonly onNavigate: (id: NodeId, direction: Direction) => void;
 }
@@ -44,6 +45,7 @@ interface Props {
   readonly branch: readonly TurnNode[];
   readonly onSelect: (id: NodeId) => void;
   readonly onToggleCollapsed: (id: NodeId) => void;
+  readonly onEdit: (turn: TurnNode) => void;
 }
 
 const nodeTypes = { turn: TurnNodeView };
@@ -56,13 +58,15 @@ const nodeTypes = { turn: TurnNodeView };
  *
  * Only one node is in the tab order. Arrow keys move focus to the parent
  * (up), a reply (down) or another version (left, right), following the
- * layout; Enter shows the focused turn's branch.
+ * layout; Enter shows the focused turn's branch, and E edits a focused
+ * message of the user, which forks the conversation at that message.
  */
 export function ConversationMap({
   graph,
   branch,
   onSelect,
   onToggleCollapsed,
+  onEdit,
 }: Props) {
   const [focusId, setFocusId] = useState<NodeId | null>(null);
   const [keyboardMove, setKeyboardMove] = useState<{
@@ -136,6 +140,7 @@ export function ConversationMap({
         ...(children.has(node.id) ? { fold: { hidden: hidden ?? 0 } } : {}),
         onSelect,
         onToggleCollapsed,
+        onEdit,
         onFocusTurn: setFocusId,
         onNavigate,
       },
@@ -247,6 +252,7 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
     fold,
     onSelect,
     onToggleCollapsed,
+    onEdit,
     onFocusTurn,
     onNavigate,
   } = data;
@@ -263,7 +269,11 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
         type="button"
         className={classes.filter((c) => c !== "").join(" ")}
         aria-current={isTip ? "true" : undefined}
-        aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight"
+        aria-keyshortcuts={
+          turn.kind === "user"
+            ? "ArrowUp ArrowDown ArrowLeft ArrowRight E"
+            : "ArrowUp ArrowDown ArrowLeft ArrowRight"
+        }
         data-turn-id={turn.id}
         tabIndex={isActive ? 0 : -1}
         title={turn.content}
@@ -274,6 +284,17 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
           onFocusTurn(turn.id);
         }}
         onKeyDown={(event) => {
+          if (
+            turn.kind === "user" &&
+            event.key.toLowerCase() === "e" &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !event.altKey
+          ) {
+            event.preventDefault();
+            onEdit(turn);
+            return;
+          }
           const direction = KEY_DIRECTIONS[event.key];
           if (direction === undefined) return;
           event.preventDefault();

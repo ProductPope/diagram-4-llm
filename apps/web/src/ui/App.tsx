@@ -462,6 +462,11 @@ export function App({ openStore, settingsStorage }: AppProps) {
             if (!busy) setAnchor(id);
           }}
           onToggleCollapsed={toggleCollapsed}
+          onEdit={(turn) => {
+            if (busy) return;
+            setAnchor(turn.id);
+            startEditing(turn);
+          }}
         />
       )}
 
@@ -547,6 +552,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
               initialContent={editing?.content ?? ""}
               busy={busy}
               blockedReason={blockedReason}
+              autoFocus={editing !== null}
               onChange={setDraft}
               onSend={send}
               onStop={() => {

@@ -1,25 +1,55 @@
-import { useState, type SubmitEvent, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type SubmitEvent,
+  type KeyboardEvent,
+} from "react";
 
 interface Props {
   readonly initialContent: string;
   readonly busy: boolean;
   /** Why sending is not possible right now, or null when it is. */
   readonly blockedReason: string | null;
+  /** Takes focus when it appears, for example when editing starts. */
+  readonly autoFocus: boolean;
   readonly onChange: (content: string) => void;
   readonly onSend: (content: string) => void;
   readonly onStop: () => void;
 }
 
-/** Message input. Ctrl+Enter or Cmd+Enter sends. */
+/** Message input. Ctrl+Enter or Cmd+Enter sends; "/" elsewhere focuses it. */
 export function Composer({
   initialContent,
   busy,
   blockedReason,
+  autoFocus,
   onChange,
   onSend,
   onStop,
 }: Props) {
   const [content, setContent] = useState(initialContent);
+  const input = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const focusOnSlash = (event: globalThis.KeyboardEvent) => {
+      if (
+        event.key !== "/" ||
+        event.defaultPrevented ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        acceptsText(event.target)
+      )
+        return;
+      event.preventDefault();
+      input.current?.focus();
+    };
+    window.addEventListener("keydown", focusOnSlash);
+    return () => {
+      window.removeEventListener("keydown", focusOnSlash);
+    };
+  }, []);
 
   const send = () => {
     if (busy || blockedReason !== null || content.trim() === "") return;
@@ -43,6 +73,9 @@ export function Composer({
       <label htmlFor="composer-input">Message</label>
       <textarea
         id="composer-input"
+        ref={input}
+        aria-keyshortcuts="/"
+        autoFocus={autoFocus}
         value={content}
         rows={4}
         onChange={(event) => {
@@ -69,5 +102,19 @@ export function Composer({
         )}
       </div>
     </form>
+  );
+}
+
+/** A "/" typed into a field is text, not a shortcut. */
+function acceptsText(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement ||
+      (target instanceof HTMLInputElement &&
+        !["button", "checkbox", "radio", "submit", "reset"].includes(
+          target.type,
+        )))
   );
 }

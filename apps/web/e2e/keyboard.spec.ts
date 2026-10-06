@@ -74,3 +74,45 @@ test("moves through the map with arrow keys and shows a branch with Enter", asyn
   await page.keyboard.press("ArrowUp");
   await expect(question("Which database?")).toBeFocused();
 });
+
+test("focuses the composer with / and forks from the map with E", async ({
+  page,
+}) => {
+  const sent: SentMessage[][] = [];
+  await page.route(ENDPOINT, (route) => answerEveryRequest(route, sent));
+  await page.goto("/");
+  await configureProvider(page);
+
+  const input = page.getByLabel("Message", { exact: true });
+  const transcript = page.getByRole("list", { name: "Selected branch" });
+  const map = page.getByRole("region", { name: "Conversation map" });
+
+  // "/" outside a text field focuses the composer and is not typed.
+  await page.getByRole("button", { name: "Settings" }).focus();
+  await page.keyboard.press("/");
+  await expect(input).toBeFocused();
+  await expect(input).toHaveValue("");
+  // Inside a text field it is an ordinary character.
+  await page.keyboard.type("Which database? a/b");
+  await expect(input).toHaveValue("Which database? a/b");
+  await input.press("Control+Enter");
+  await expect(
+    transcript.getByText("Answer to: Which database? a/b"),
+  ).toBeVisible();
+
+  // E on the user's message in the map starts editing it in the composer.
+  await map.locator('.map-node[tabindex="0"]').focus();
+  await page.keyboard.press("ArrowUp");
+  await expect(map.locator(".map-node-user")).toBeFocused();
+  await page.keyboard.press("e");
+  await expect(input).toBeFocused();
+  await expect(input).toHaveValue("Which database? a/b");
+
+  await input.fill("Which database for a small app?");
+  await input.press("Control+Enter");
+  await expect(
+    transcript.getByText("Answer to: Which database for a small app?"),
+  ).toBeVisible();
+  // The edit is a new root next to the original; nothing was overwritten.
+  await expect(map.locator(".map-node-user")).toHaveCount(2);
+});
