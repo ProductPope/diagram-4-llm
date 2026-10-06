@@ -127,8 +127,10 @@ consecutive weeks and records the friction points in issues.
 - [x] Persistence in the browser
 - [x] Export and import of the JSON format (an import never overwrites an
       existing conversation)
-- [ ] Keyboard navigation of the tree (all controls are reachable by
-      keyboard, but there are no tree navigation shortcuts yet)
+- [x] Keyboard navigation of the tree: arrow keys on the map move to the
+      parent, a reply or another version, and Enter shows that branch
+- [ ] Keyboard shortcuts to fork and to focus the composer (both are
+      reachable with Tab, but have no shortcut yet)
 - [x] Markdown rendering of answers (no raw HTML; images shown as links)
 - [x] Performance checked with a 1,000-turn conversation (render and branch
       switch budgets in an end-to-end test; panning frame rate not measured)

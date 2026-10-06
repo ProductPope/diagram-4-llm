@@ -10,19 +10,29 @@ import {
   type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { visibleForest } from "../app/collapse";
-import { layoutForest, NODE_HEIGHT, NODE_WIDTH } from "../app/layout";
+import {
+  layoutForest,
+  NODE_HEIGHT,
+  NODE_WIDTH,
+  type Position as Point,
+} from "../app/layout";
+import { neighbour, type Direction } from "../app/navigation";
 
 interface TurnData extends Record<string, unknown> {
   readonly turn: TurnNode;
   readonly onBranch: boolean;
   readonly isTip: boolean;
+  /** The one node in the tab order; arrow keys move focus from it. */
+  readonly isActive: boolean;
   /** Present only for nodes with children. */
   readonly fold?: { readonly hidden: number };
   readonly onSelect: (id: NodeId) => void;
   readonly onToggleCollapsed: (id: NodeId) => void;
+  readonly onFocusTurn: (id: NodeId) => void;
+  readonly onNavigate: (id: NodeId, direction: Direction) => void;
 }
 
 type TurnFlowNode = Node<TurnData, "turn">;
@@ -41,6 +51,10 @@ const nodeTypes = { turn: TurnNodeView };
  * activating a node shows its branch in the reading pane. Nodes show a short
  * label only; the reading pane is where messages are read. A collapsed node
  * hides its descendants and shows how many it hides.
+ *
+ * Only one node is in the tab order. Arrow keys move focus to the parent
+ * (up), a reply (down) or another version (left, right), following the
+ * layout; Enter shows the focused turn's branch.
  */
 export function ConversationMap({
   graph,
@@ -48,6 +62,11 @@ export function ConversationMap({
   onSelect,
   onToggleCollapsed,
 }: Props) {
+  const [focusId, setFocusId] = useState<NodeId | null>(null);
+  const [keyboardMove, setKeyboardMove] = useState<{
+    readonly id: NodeId;
+    readonly position: Point;
+  } | null>(null);
   const onBranch = new Set(branch.map((turn) => turn.id));
   const tipId = branch.at(-1)?.id;
   const children = new Map<string | null, string[]>();
@@ -84,6 +103,17 @@ export function ConversationMap({
     (id) => graph.meta.get(id)?.collapsed === true,
   );
   const positions = layoutForest(visible);
+  const activeId =
+    focusId !== null && positions.has(focusId)
+      ? focusId
+      : branch.findLast((turn) => positions.has(turn.id))?.id;
+  const onNavigate = (id: NodeId, direction: Direction) => {
+    const target = neighbour(visible, id, direction, onBranch);
+    const position = target === undefined ? undefined : positions.get(target);
+    if (target === undefined || position === undefined) return;
+    setFocusId(target);
+    setKeyboardMove({ id: target, position });
+  };
   const nodes: TurnFlowNode[] = [];
   for (const node of graph.nodes.values()) {
     const position = positions.get(node.id);
@@ -99,9 +129,12 @@ export function ConversationMap({
         turn: node,
         onBranch: onBranch.has(node.id),
         isTip: node.id === tipId,
+        isActive: node.id === activeId,
         ...(children.has(node.id) ? { fold: { hidden: hidden ?? 0 } } : {}),
         onSelect,
         onToggleCollapsed,
+        onFocusTurn: setFocusId,
+        onNavigate,
       },
     });
   }
@@ -129,6 +162,7 @@ export function ConversationMap({
             .map((turn) => turn.id)
             .filter((id) => positions.has(id))}
         />
+        <FocusAfterKeyboardMove move={keyboardMove} />
       </ReactFlow>
     </section>
   );
@@ -167,8 +201,51 @@ function FollowBranch({
   return null;
 }
 
+const KEY_DIRECTIONS: Readonly<Record<string, Direction>> = {
+  ArrowUp: "parent",
+  ArrowDown: "child",
+  ArrowLeft: "previous",
+  ArrowRight: "next",
+};
+
+/**
+ * Moves keyboard focus to the turn reached with an arrow key and centres
+ * the view on it. The browser must not scroll to the focused element
+ * itself: the map's viewport is a transform, not a scroll position.
+ */
+function FocusAfterKeyboardMove({
+  move,
+}: {
+  readonly move: { readonly id: NodeId; readonly position: Point } | null;
+}) {
+  const { setCenter, getZoom } = useReactFlow();
+  useEffect(() => {
+    if (move === null) return;
+    const element = document.querySelector<HTMLElement>(
+      `.map [data-turn-id="${move.id}"]`,
+    );
+    element?.focus({ preventScroll: true });
+    void setCenter(
+      move.position.x + NODE_WIDTH / 2,
+      move.position.y + NODE_HEIGHT / 2,
+      { zoom: getZoom(), duration: 150 },
+    );
+  }, [move, setCenter, getZoom]);
+  return null;
+}
+
 function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
-  const { turn, onBranch, isTip, fold, onSelect, onToggleCollapsed } = data;
+  const {
+    turn,
+    onBranch,
+    isTip,
+    isActive,
+    fold,
+    onSelect,
+    onToggleCollapsed,
+    onFocusTurn,
+    onNavigate,
+  } = data;
   const classes = [
     "map-node",
     `map-node-${turn.kind}`,
@@ -182,9 +259,21 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
         type="button"
         className={classes.filter((c) => c !== "").join(" ")}
         aria-current={isTip ? "true" : undefined}
+        aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight"
+        data-turn-id={turn.id}
+        tabIndex={isActive ? 0 : -1}
         title={turn.content}
         onClick={() => {
           onSelect(turn.id);
+        }}
+        onFocus={() => {
+          onFocusTurn(turn.id);
+        }}
+        onKeyDown={(event) => {
+          const direction = KEY_DIRECTIONS[event.key];
+          if (direction === undefined) return;
+          event.preventDefault();
+          onNavigate(turn.id, direction);
         }}
       >
         <span className="map-node-role">
@@ -196,6 +285,7 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
         <button
           type="button"
           className="map-node-fold"
+          tabIndex={isActive ? 0 : -1}
           aria-expanded={fold.hidden === 0}
           aria-label={
             fold.hidden === 0
