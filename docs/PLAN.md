@@ -133,6 +133,8 @@ consecutive weeks and records the friction points in issues.
 - [x] Keyboard shortcuts to fork (E on a message of the user in the map)
       and to focus the composer (/)
 - [x] Markdown rendering of answers (no raw HTML; images shown as links)
+- [x] Consistent visual design for everything except the map, light and
+      dark ([ADR 0007](adr/0007-design-system.md))
 - [x] Performance checked with a 1,000-turn conversation (render and branch
       switch budgets in an end-to-end test; panning frame rate not measured)
 

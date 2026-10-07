@@ -1,3 +1,4 @@
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defaultClientConditions, defaultServerConditions } from "vite";
 import { defineConfig, type Plugin } from "vitest/config";
@@ -39,7 +40,7 @@ function contentSecurityPolicy(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), contentSecurityPolicy()],
+  plugins: [react(), tailwindcss(), contentSecurityPolicy()],
   // Workspace packages expose their TypeScript sources under the "source"
   // condition, so the app uses them directly without building them first.
   // Tests in the Node environment resolve with the server conditions.

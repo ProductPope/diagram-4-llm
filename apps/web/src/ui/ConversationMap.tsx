@@ -1,5 +1,7 @@
 import type { ConversationGraph, NodeId, TurnNode } from "@diagram-4-llm/core";
 import {
+  Background,
+  BackgroundVariant,
   Controls,
   Handle,
   Position,
@@ -148,7 +150,10 @@ export function ConversationMap({
   }
 
   return (
-    <section className="map" aria-label="Conversation map">
+    <section
+      className="map min-h-0 border-r bg-muted/40"
+      aria-label="Conversation map"
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges.filter(
@@ -163,6 +168,7 @@ export function ConversationMap({
         fitView
         minZoom={0.1}
       >
+        <Background variant={BackgroundVariant.Dots} gap={18} size={1.5} />
         <Controls showInteractive={false} />
         <FollowBranch
           total={nodes.length}
