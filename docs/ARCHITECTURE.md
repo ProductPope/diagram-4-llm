@@ -309,7 +309,8 @@ provide everything the canvas offers.
 API keys stored in browser storage can be read by any script running on the
 page. The mitigations are:
 
-- no third-party scripts, analytics or fonts loaded at runtime,
+- no third-party scripts, analytics or fonts loaded at runtime (the
+  interface font is bundled with the app),
 - a strict Content Security Policy in production builds: scripts and
   styles only from the app itself, no inline scripts, and connections only
   to HTTPS endpoints and local model servers on `localhost`. A static policy
@@ -344,14 +345,15 @@ Snapshot-only tests are not accepted as the sole test of a behaviour.
 Confirmed for `packages/core` in phase 0. The UI choices are confirmed in
 phase 1. TypeScript is held at 6.0 until typescript-eslint supports 7.
 
-| Concern    | Choice                                           | Reason                                                                 |
-| ---------- | ------------------------------------------------ | ---------------------------------------------------------------------- |
-| Language   | TypeScript, `strict`                             | Type-checked domain model                                              |
-| Workspace  | pnpm workspaces                                  | Separates `core` from `web` with little tooling                        |
-| Build      | Vite                                             | Standard, fast, well documented                                        |
-| UI         | React                                            | Largest ecosystem for canvas and accessibility libraries               |
-| Canvas     | React Flow (`@xyflow/react`)                     | Mature node-graph rendering. Layout is computed separately.            |
-| State      | Own 20-line store (`apps/web/src/chat/store.ts`) | Works with React's `useSyncExternalStore`; a library adds nothing here |
-| Storage    | IndexedDB, no wrapper library                    | One record per conversation needs only get, put and delete             |
-| Validation | Zod, exported to JSON Schema                     | One source for runtime validation and the published format             |
-| Tests      | Vitest, fast-check, Playwright                   | See section 8                                                          |
+| Concern    | Choice                                           | Reason                                                                                                    |
+| ---------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| Language   | TypeScript, `strict`                             | Type-checked domain model                                                                                 |
+| Workspace  | pnpm workspaces                                  | Separates `core` from `web` with little tooling                                                           |
+| Build      | Vite                                             | Standard, fast, well documented                                                                           |
+| UI         | React                                            | Largest ecosystem for canvas and accessibility libraries                                                  |
+| Canvas     | React Flow (`@xyflow/react`)                     | Mature node-graph rendering. Layout is computed separately.                                               |
+| Styling    | shadcn/ui on Tailwind CSS                        | Consistent, accessible controls whose source is in the repository ([ADR 0007](adr/0007-design-system.md)) |
+| State      | Own 20-line store (`apps/web/src/chat/store.ts`) | Works with React's `useSyncExternalStore`; a library adds nothing here                                    |
+| Storage    | IndexedDB, no wrapper library                    | One record per conversation needs only get, put and delete                                                |
+| Validation | Zod, exported to JSON Schema                     | One source for runtime validation and the published format                                                |
+| Tests      | Vitest, fast-check, Playwright                   | See section 8                                                                                             |

@@ -5,6 +5,11 @@ import type {
   TurnNode,
 } from "@diagram-4-llm/core";
 
+import { Badge } from "#components/ui/badge";
+import { Button } from "#components/ui/button";
+import { cn } from "#lib/utils";
+import { ChevronLeft, ChevronRight, Pencil, RotateCcw } from "lucide-react";
+
 import { siblingsOf } from "../app/branch";
 import { MarkdownContent } from "./MarkdownContent";
 
@@ -30,25 +35,38 @@ export function ReadingPane({
   onRegenerate,
 }: Props) {
   if (branch.length === 0) {
-    return <p className="empty">Start the conversation below.</p>;
+    return (
+      <p className="m-auto text-sm text-muted-foreground">
+        Start the conversation below.
+      </p>
+    );
   }
   return (
-    <ol className="transcript" aria-label="Selected branch">
+    <ol className="flex flex-col gap-5" aria-label="Selected branch">
       {branch.map((turn) => {
         const { siblings, index } = siblingsOf(graph, turn);
-        const label = turn.kind === "user" ? "You" : turn.generation.model;
         return (
           <li
             key={turn.id}
-            className={`turn turn-${turn.kind}`}
+            className={cn(
+              "group/turn flex flex-col gap-2",
+              turn.kind === "user" && "items-end",
+            )}
             aria-label={turn.kind === "user" ? "Your message" : "Answer"}
           >
-            <header className="turn-header">
-              <span className="turn-author">{label}</span>
+            <header className="flex min-h-7 items-center gap-1 text-xs text-muted-foreground">
+              {turn.kind === "user" ? (
+                <span className="font-medium">You</span>
+              ) : (
+                <Badge variant="outline" className="font-mono font-normal">
+                  {turn.generation.model}
+                </Badge>
+              )}
               {siblings.length > 1 && (
-                <span className="versions">
-                  <button
-                    type="button"
+                <span className="flex items-center">
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
                     aria-label="Previous version"
                     disabled={busy || index === 0}
                     onClick={() => {
@@ -56,13 +74,14 @@ export function ReadingPane({
                       if (previous !== undefined) onSelect(previous.id);
                     }}
                   >
-                    ‹
-                  </button>
-                  <span aria-label="Version">
+                    <ChevronLeft aria-hidden="true" />
+                  </Button>
+                  <span aria-label="Version" className="tabular-nums">
                     {index + 1} / {siblings.length}
                   </span>
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
                     aria-label="Next version"
                     disabled={busy || index === siblings.length - 1}
                     onClick={() => {
@@ -70,35 +89,43 @@ export function ReadingPane({
                       if (next !== undefined) onSelect(next.id);
                     }}
                   >
-                    ›
-                  </button>
+                    <ChevronRight aria-hidden="true" />
+                  </Button>
                 </span>
               )}
               {!busy && turn.kind === "user" && (
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="xs"
                   onClick={() => {
                     onEdit(turn);
                   }}
                 >
+                  <Pencil aria-hidden="true" />
                   Edit
-                </button>
+                </Button>
               )}
               {!busy && turn.kind === "assistant" && (
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="xs"
                   onClick={() => {
                     onRegenerate(turn.parentId);
                   }}
                 >
+                  <RotateCcw aria-hidden="true" />
                   Regenerate
-                </button>
+                </Button>
               )}
             </header>
             {turn.kind === "assistant" ? (
-              <MarkdownContent text={turn.content} />
+              <div className="w-full">
+                <MarkdownContent text={turn.content} />
+              </div>
             ) : (
-              <div className="turn-content">{turn.content}</div>
+              <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-muted px-4 py-2.5 text-sm whitespace-pre-wrap break-words">
+                {turn.content}
+              </div>
             )}
             {turn.kind === "assistant" && <AnswerStatus turn={turn} />}
           </li>
@@ -113,7 +140,10 @@ function AnswerStatus({ turn }: { readonly turn: AssistantTurn }) {
   if (text === null) return null;
   return (
     <p
-      className={`turn-status turn-status-${turn.status}`}
+      className={cn(
+        "text-xs",
+        turn.status === "error" ? "text-destructive" : "text-muted-foreground",
+      )}
       role={turn.status === "error" ? "alert" : "status"}
     >
       {text}

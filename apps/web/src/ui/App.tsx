@@ -8,6 +8,20 @@ import {
   type NodeId,
   type TurnNode,
 } from "@diagram-4-llm/core";
+import { Alert, AlertDescription } from "#components/ui/alert";
+import { Badge } from "#components/ui/badge";
+import { Button, buttonVariants } from "#components/ui/button";
+import { NativeSelect, NativeSelectOption } from "#components/ui/native-select";
+import { cn } from "#lib/utils";
+import {
+  CircleAlert,
+  Download,
+  GitFork,
+  Network,
+  Plus,
+  Settings2,
+  Upload,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { visibleBranch } from "../app/branch";
@@ -392,27 +406,56 @@ export function App({ openStore, settingsStorage }: AppProps) {
   };
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>diagram-4-llm</h1>
-        <button
-          type="button"
-          onClick={() => {
-            setShowSettings(true);
-          }}
-        >
-          Settings
-        </button>
+    <div className="grid h-dvh grid-cols-[15rem_minmax(18rem,1fr)_minmax(26rem,46rem)] grid-rows-[auto_minmax(0,1fr)]">
+      <header className="col-span-full flex h-14 items-center justify-between gap-4 border-b px-4">
+        <div className="flex items-center gap-2">
+          <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Network className="size-4" aria-hidden="true" />
+          </span>
+          <h1 className="font-heading text-base font-semibold tracking-tight">
+            diagram-4-llm
+          </h1>
+        </div>
+        <div className="flex items-center gap-2">
+          {settings !== null && (
+            <Badge variant="secondary" className="hidden sm:inline-flex">
+              {settings.adapter === "anthropic"
+                ? "Anthropic"
+                : "OpenAI-compatible"}
+            </Badge>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setShowSettings(true);
+            }}
+          >
+            <Settings2 aria-hidden="true" />
+            Settings
+          </Button>
+        </div>
       </header>
 
-      <nav className="sidebar" aria-label="Conversations">
-        <button type="button" onClick={newConversation} disabled={busy}>
+      <nav
+        className="flex min-h-0 flex-col gap-3 border-r bg-sidebar p-3 text-sidebar-foreground"
+        aria-label="Conversations"
+      >
+        <Button onClick={newConversation} disabled={busy}>
+          <Plus aria-hidden="true" />
           New conversation
-        </button>
-        <label className="import">
+        </Button>
+        <label
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "has-[input:disabled]:pointer-events-none has-[input:disabled]:opacity-50 has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50",
+          )}
+        >
+          <Upload aria-hidden="true" />
           Import conversation
           <input
             type="file"
+            className="sr-only"
             accept=".json,application/json"
             disabled={busy || storage.status !== "ready"}
             onChange={(event) => {
@@ -422,28 +465,38 @@ export function App({ openStore, settingsStorage }: AppProps) {
             }}
           />
         </label>
-        <p className="save-state" role="status">
+        <p className="px-1 text-xs text-muted-foreground" role="status">
           {saveStateText(saveState)}
         </p>
         {storage.status === "failed" && (
-          <p role="alert">Conversations cannot be saved: {storage.message}</p>
+          <Alert variant="destructive">
+            <AlertDescription>
+              Conversations cannot be saved: {storage.message}
+            </AlertDescription>
+          </Alert>
         )}
+        <h2 className="px-1 pt-2 text-xs font-medium text-muted-foreground">
+          Conversations
+        </h2>
         {conversations.length === 0 ? (
-          <p>No conversations yet.</p>
+          <p className="px-1 text-sm text-muted-foreground">
+            No conversations yet.
+          </p>
         ) : (
-          <ul>
+          <ul className="-mx-1 flex min-h-0 flex-col gap-0.5 overflow-y-auto px-1">
             {conversations.map((c) => (
               <li key={c.id}>
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start truncate font-normal aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-medium aria-[current=page]:text-sidebar-accent-foreground"
                   aria-current={
                     graph?.conversation.id === c.id ? "page" : undefined
                   }
                   disabled={busy}
                   onClick={() => void openConversation(c.id)}
                 >
-                  {c.title}
-                </button>
+                  <span className="truncate">{c.title}</span>
+                </Button>
               </li>
             ))}
           </ul>
@@ -451,7 +504,11 @@ export function App({ openStore, settingsStorage }: AppProps) {
       </nav>
 
       {graph === null ? (
-        <section className="map map-empty" aria-label="Conversation map">
+        <section
+          className="flex flex-col items-center justify-center gap-2 border-r bg-muted/40 p-6 text-center text-sm text-muted-foreground"
+          aria-label="Conversation map"
+        >
+          <GitFork className="size-6" aria-hidden="true" />
           <p>The map of the conversation appears here once it starts.</p>
         </section>
       ) : (
@@ -470,36 +527,41 @@ export function App({ openStore, settingsStorage }: AppProps) {
         />
       )}
 
-      <main className="main">
-        {error !== null && (
-          <p className="error" role="alert">
-            {error}
-          </p>
-        )}
-        {showSettings ? (
-          <SettingsForm
-            initial={settings}
-            onSave={(next) => {
-              saveSettings(next, settingsStorage);
-              setSettings(next);
-              setShowSettings(false);
-            }}
-            onCancel={() => {
-              setShowSettings(false);
-            }}
-          />
-        ) : (
-          <>
-            {graph !== null && (
-              <div className="conversation-actions">
-                <button type="button" onClick={exportCurrent}>
+      <main className="flex min-h-0 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
+          {error !== null && (
+            <Alert variant="destructive">
+              <CircleAlert aria-hidden="true" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {showSettings ? (
+            <SettingsForm
+              initial={settings}
+              onSave={(next) => {
+                saveSettings(next, settingsStorage);
+                setSettings(next);
+                setShowSettings(false);
+              }}
+              onCancel={() => {
+                setShowSettings(false);
+              }}
+            />
+          ) : graph === null ? (
+            <p className="m-auto text-sm text-muted-foreground">
+              Start a new conversation below.
+            </p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="truncate font-heading text-lg font-semibold tracking-tight">
+                  {graph.conversation.title}
+                </h2>
+                <Button variant="outline" size="sm" onClick={exportCurrent}>
+                  <Download aria-hidden="true" />
                   Export conversation
-                </button>
+                </Button>
               </div>
-            )}
-            {graph === null ? (
-              <p className="empty">Start a new conversation below.</p>
-            ) : (
               <ReadingPane
                 graph={graph}
                 branch={branch}
@@ -508,15 +570,22 @@ export function App({ openStore, settingsStorage }: AppProps) {
                 onEdit={startEditing}
                 onRegenerate={regenerate}
               />
-            )}
+            </>
+          )}
+        </div>
+
+        {!showSettings && (
+          <div className="flex flex-col gap-3 border-t bg-background px-6 py-4">
             {editing !== null && (
-              <p className="editing">
-                Editing creates a new version of the message; the original stays
-                in the conversation.{" "}
-                <button type="button" onClick={cancelEditing}>
+              <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2 text-sm">
+                <p className="text-muted-foreground">
+                  Editing creates a new version of the message; the original
+                  stays in the conversation.
+                </p>
+                <Button variant="ghost" size="sm" onClick={cancelEditing}>
                   Cancel editing
-                </button>
-              </p>
+                </Button>
+              </div>
             )}
             {graph !== null && parentId !== undefined && (
               <ContextInspector
@@ -529,24 +598,6 @@ export function App({ openStore, settingsStorage }: AppProps) {
                 }
               />
             )}
-            {configuredModels.length > 1 && model !== undefined && (
-              <label className="model-choice">
-                Model for the next answer
-                <select
-                  value={model}
-                  disabled={busy}
-                  onChange={(event) => {
-                    setModelChoice(event.target.value);
-                  }}
-                >
-                  {configuredModels.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
             <Composer
               key={composerKey}
               initialContent={editing?.content ?? ""}
@@ -558,8 +609,28 @@ export function App({ openStore, settingsStorage }: AppProps) {
               onStop={() => {
                 controller?.abort();
               }}
+              options={
+                configuredModels.length > 1 &&
+                model !== undefined && (
+                  <NativeSelect
+                    size="sm"
+                    aria-label="Model for the next answer"
+                    value={model}
+                    disabled={busy}
+                    onChange={(event) => {
+                      setModelChoice(event.target.value);
+                    }}
+                  >
+                    {configuredModels.map((option) => (
+                      <NativeSelectOption key={option} value={option}>
+                        {option}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                )
+              }
             />
-          </>
+          </div>
         )}
       </main>
     </div>
