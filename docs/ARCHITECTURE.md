@@ -277,7 +277,12 @@ Browser-specific constraints:
   parent, down to a reply on the selected branch or else the newest reply,
   left and right between versions), Enter shows the focused turn's
   branch, and E on a message of the user starts editing it, which forks
-  the conversation there. Moving focus alone never changes the branch
+  the conversation there. Each node has a context menu (right click, or
+  the context menu key): "Branch from here" on an answer starts a new
+  message after it, so the model sees the branch up to that answer and
+  nothing after it; "New version of this message" on a user message;
+  "Show in conversation"; and collapse or expand. Choosing a turn on the
+  map scrolls the conversation to it. Moving focus alone never changes the branch
   being read.
   References are drawn as dashed edges.
 - **Reading pane:** a linear view of the selected branch: the path to a
