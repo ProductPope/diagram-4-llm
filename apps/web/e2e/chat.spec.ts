@@ -83,7 +83,7 @@ test("branches a conversation, sends only the branch's context, and keeps it aft
 
   const savedConversation = page
     .getByRole("navigation", { name: "Conversations" })
-    .getByRole("button", { name: "Which database?" });
+    .getByRole("button", { name: "Which database?", exact: true });
   await expect(savedConversation).toBeVisible();
   await expect(
     page.getByRole("status").filter({ hasText: "All changes saved" }),

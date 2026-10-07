@@ -12,6 +12,7 @@ test("opens the demo without a provider, and only once", async ({ page }) => {
   const conversations = page.getByRole("navigation", { name: "Conversations" });
   const demoEntry = conversations.getByRole("button", {
     name: "Demo: which database for a small app?",
+    exact: true,
   });
 
   await page.getByRole("button", { name: "Open the demo" }).click();

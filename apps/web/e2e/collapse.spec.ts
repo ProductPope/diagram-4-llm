@@ -46,7 +46,7 @@ test("collapses a subtree on the map and keeps it collapsed after reload", async
   await page.reload();
   await page
     .getByRole("navigation", { name: "Conversations" })
-    .getByRole("button", { name: "First question" })
+    .getByRole("button", { name: "First question", exact: true })
     .click();
   await expect(map.locator(".map-node")).toHaveCount(2);
 
