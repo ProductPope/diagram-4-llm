@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, expect, it } from "vitest";
 
@@ -12,7 +12,7 @@ afterEach(() => {
   cleanup();
 });
 
-it("starts with no conversations and asks for a provider before sending", async () => {
+it("offers setup first, and asks for a provider before sending if it is skipped", async () => {
   render(
     <App
       openStore={() => openConversationStore(new IDBFactory())}
@@ -21,6 +21,8 @@ it("starts with no conversations and asks for a provider before sending", async 
   );
 
   expect(await screen.findByText("No conversations yet.")).toBeDefined();
+  expect(screen.getByRole("heading", { name: "Welcome" })).toBeDefined();
+  fireEvent.click(screen.getByRole("button", { name: "Skip for now" }));
   expect(
     screen.getByText("Configure a provider in Settings before sending."),
   ).toBeDefined();

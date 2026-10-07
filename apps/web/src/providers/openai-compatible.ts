@@ -1,4 +1,9 @@
-import type { StopReason, TokenUsage } from "@diagram-4-llm/core";
+import type {
+  ProviderErrorInfo,
+  Result,
+  StopReason,
+  TokenUsage,
+} from "@diagram-4-llm/core";
 
 import { readServerSentEvents } from "./sse";
 import type { ChatRequest, ProviderAdapter, StreamEvent } from "./types";
@@ -29,6 +34,76 @@ export function createOpenAICompatibleAdapter(
   };
 }
 
+/**
+ * The IDs of the models the server offers (`GET /models`, which Ollama, LM
+ * Studio and the OpenAI API implement), for choosing models during setup.
+ * A successful call also confirms that the server is reachable from the
+ * browser, which includes its CORS settings.
+ */
+export async function listOpenAICompatibleModels(
+  config: OpenAICompatibleConfig,
+  signal: AbortSignal,
+): Promise<Result<string[], ProviderErrorInfo>> {
+  const doFetch = config.fetch ?? globalThis.fetch.bind(globalThis);
+  let response: Response;
+  try {
+    response = await doFetch(endpoint(config, "models"), {
+      headers: authorization(config),
+      signal,
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      error: signal.aborted
+        ? { code: "aborted", message: "The request was cancelled." }
+        : {
+            code: "network",
+            message: error instanceof Error ? error.message : String(error),
+          },
+    };
+  }
+  if (!response.ok) {
+    return {
+      ok: false,
+      error: {
+        code: `http-${String(response.status)}`,
+        message: await errorMessage(response),
+      },
+    };
+  }
+  const ids = modelIds(await response.json().catch(() => null));
+  return ids === null
+    ? {
+        ok: false,
+        error: {
+          code: "invalid-response",
+          message: "The server's model list is not in the expected format.",
+        },
+      }
+    : { ok: true, value: ids };
+}
+
+/** Reads `data[].id` from a list response, ignoring other fields. */
+function modelIds(value: unknown): string[] | null {
+  if (!isRecord(value) || !Array.isArray(value.data)) return null;
+  const ids: string[] = [];
+  for (const model of value.data as unknown[]) {
+    if (!isRecord(model) || typeof model.id !== "string") return null;
+    ids.push(model.id);
+  }
+  return ids;
+}
+
+function endpoint(config: OpenAICompatibleConfig, path: string): string {
+  return `${config.baseUrl.replace(/\/+$/, "")}/${path}`;
+}
+
+function authorization(config: OpenAICompatibleConfig): Record<string, string> {
+  return config.apiKey === undefined
+    ? {}
+    : { authorization: `Bearer ${config.apiKey}` };
+}
+
 async function* streamCompletion(
   doFetch: typeof fetch,
   config: OpenAICompatibleConfig,
@@ -39,20 +114,15 @@ async function* streamCompletion(
   let stopReason: StopReason = "other";
 
   try {
-    const response = await doFetch(
-      `${config.baseUrl.replace(/\/+$/, "")}/chat/completions`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          ...(config.apiKey === undefined
-            ? {}
-            : { authorization: `Bearer ${config.apiKey}` }),
-        },
-        body: JSON.stringify(requestBody(request)),
-        signal,
+    const response = await doFetch(endpoint(config, "chat/completions"), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...authorization(config),
       },
-    );
+      body: JSON.stringify(requestBody(request)),
+      signal,
+    });
 
     if (!response.ok) {
       yield {
