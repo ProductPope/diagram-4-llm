@@ -12,6 +12,11 @@ import { Alert, AlertDescription } from "#components/ui/alert";
 import { Badge } from "#components/ui/badge";
 import { Button, buttonVariants } from "#components/ui/button";
 import { NativeSelect, NativeSelectOption } from "#components/ui/native-select";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "#components/ui/resizable";
 import { cn } from "#lib/utils";
 import {
   CircleAlert,
@@ -24,6 +29,7 @@ import {
   Upload,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useDefaultLayout } from "react-resizable-panels";
 
 import { visibleBranch } from "../app/branch";
 import { DEMO_CONVERSATION_ID, demoConversation } from "../app/demo";
@@ -106,6 +112,12 @@ export function App({ openStore, settingsStorage }: AppProps) {
     "saved" | "unsaved" | "saving" | "failed"
   >("saved");
   const graph = useStoreValue(current);
+  // Panel widths are kept in the browser, like the provider settings.
+  const layout = useDefaultLayout({
+    id: "diagram-4-llm.layout",
+    storage: settingsStorage,
+    onlySaveAfterUserInteractions: true,
+  });
 
   useEffect(() => {
     // Results that arrive after the component is gone must not update it.
@@ -437,8 +449,8 @@ export function App({ openStore, settingsStorage }: AppProps) {
   };
 
   return (
-    <div className="grid h-dvh grid-cols-[15rem_minmax(18rem,1fr)_minmax(26rem,46rem)] grid-rows-[auto_minmax(0,1fr)]">
-      <header className="col-span-full flex h-14 items-center justify-between gap-4 border-b px-4">
+    <div className="flex h-dvh flex-col">
+      <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b px-4">
         <div className="flex items-center gap-2">
           <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Network className="size-4" aria-hidden="true" />
@@ -468,243 +480,261 @@ export function App({ openStore, settingsStorage }: AppProps) {
         </div>
       </header>
 
-      <nav
-        className="flex min-h-0 flex-col gap-3 border-r bg-sidebar p-3 text-sidebar-foreground"
-        aria-label="Conversations"
+      <ResizablePanelGroup
+        orientation="horizontal"
+        className="min-h-0 flex-1"
+        defaultLayout={layout.defaultLayout}
+        onLayoutChanged={layout.onLayoutChanged}
       >
-        <Button onClick={newConversation} disabled={busy}>
-          <Plus aria-hidden="true" />
-          New conversation
-        </Button>
-        <label
-          className={cn(
-            buttonVariants({ variant: "outline" }),
-            "has-[input:disabled]:pointer-events-none has-[input:disabled]:opacity-50 has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50",
-          )}
+        <ResizablePanel
+          id="sidebar"
+          defaultSize="18"
+          minSize={180}
+          maxSize="30"
         >
-          <Upload aria-hidden="true" />
-          Import conversation
-          <input
-            type="file"
-            className="sr-only"
-            accept=".json,application/json"
-            disabled={busy || storage.status !== "ready"}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (file !== undefined) void importFile(file);
-            }}
-          />
-        </label>
-        <Button
-          variant="ghost"
-          className="justify-start"
-          disabled={busy || storage.status !== "ready"}
-          onClick={() => void openDemo()}
-        >
-          <Sparkles aria-hidden="true" />
-          Open the demo
-        </Button>
-        <p className="px-1 text-xs text-muted-foreground" role="status">
-          {saveStateText(saveState)}
-        </p>
-        {storage.status === "failed" && (
-          <Alert variant="destructive">
-            <AlertDescription>
-              Conversations cannot be saved: {storage.message}
-            </AlertDescription>
-          </Alert>
-        )}
-        <h2 className="px-1 pt-2 text-xs font-medium text-muted-foreground">
-          Conversations
-        </h2>
-        {conversations.length === 0 ? (
-          <p className="px-1 text-sm text-muted-foreground">
-            No conversations yet.
-          </p>
-        ) : (
-          <ul className="-mx-1 flex min-h-0 flex-col gap-0.5 overflow-y-auto px-1">
-            {conversations.map((c) => (
-              <li key={c.id}>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start truncate font-normal aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-medium aria-[current=page]:text-sidebar-accent-foreground"
-                  aria-current={
-                    graph?.conversation.id === c.id ? "page" : undefined
-                  }
-                  disabled={busy}
-                  onClick={() => void openConversation(c.id)}
-                >
-                  <span className="truncate">{c.title}</span>
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </nav>
-
-      {graph === null ? (
-        <section
-          className="flex flex-col items-center justify-center gap-2 border-r bg-muted/40 p-6 text-center text-sm text-muted-foreground"
-          aria-label="Conversation map"
-        >
-          <GitFork className="size-6" aria-hidden="true" />
-          <p>The map of the conversation appears here once it starts.</p>
-        </section>
-      ) : (
-        <ConversationMap
-          graph={graph}
-          branch={branch}
-          onSelect={(id) => {
-            if (!busy) setAnchor(id);
-          }}
-          onToggleCollapsed={toggleCollapsed}
-          onEdit={(turn) => {
-            if (busy) return;
-            setAnchor(turn.id);
-            startEditing(turn);
-          }}
-        />
-      )}
-
-      <main className="flex min-h-0 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
-          {error !== null && (
-            <Alert variant="destructive">
-              <CircleAlert aria-hidden="true" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          {showSettings ? (
-            <SettingsForm
-              initial={settings}
-              onSave={(next) => {
-                saveSettings(next, settingsStorage);
-                setSettings(next);
-                setShowSettings(false);
-                setShowSetup(false);
-              }}
-              onCancel={() => {
-                setShowSettings(false);
-              }}
-              onStartSetup={() => {
-                setShowSettings(false);
-                setShowSetup(true);
-              }}
-            />
-          ) : showSetup ? (
-            <SetupWizard
-              origin={window.location.origin}
-              systemPrompt={settings?.systemPrompt ?? ""}
-              onComplete={(next) => {
-                saveSettings(next, settingsStorage);
-                setSettings(next);
-                setShowSetup(false);
-              }}
-              onOpenDemo={() => void openDemo()}
-              onSkip={() => {
-                setShowSetup(false);
-              }}
-            />
-          ) : graph === null ? (
-            <p className="m-auto text-sm text-muted-foreground">
-              Start a new conversation below.
+          <nav
+            className="flex h-full flex-col gap-3 bg-sidebar p-3 text-sidebar-foreground"
+            aria-label="Conversations"
+          >
+            <Button onClick={newConversation} disabled={busy}>
+              <Plus aria-hidden="true" />
+              New conversation
+            </Button>
+            <label
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "has-[input:disabled]:pointer-events-none has-[input:disabled]:opacity-50 has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50",
+              )}
+            >
+              <Upload aria-hidden="true" />
+              Import conversation
+              <input
+                type="file"
+                className="sr-only"
+                accept=".json,application/json"
+                disabled={busy || storage.status !== "ready"}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (file !== undefined) void importFile(file);
+                }}
+              />
+            </label>
+            <Button
+              variant="ghost"
+              className="justify-start"
+              disabled={busy || storage.status !== "ready"}
+              onClick={() => void openDemo()}
+            >
+              <Sparkles aria-hidden="true" />
+              Open the demo
+            </Button>
+            <p className="px-1 text-xs text-muted-foreground" role="status">
+              {saveStateText(saveState)}
             </p>
-          ) : (
-            <>
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="truncate font-heading text-lg font-semibold tracking-tight">
-                  {graph.conversation.title}
-                </h2>
-                <Button variant="outline" size="sm" onClick={exportCurrent}>
-                  <Download aria-hidden="true" />
-                  Export conversation
-                </Button>
-              </div>
-              <ReadingPane
-                graph={graph}
-                branch={branch}
-                busy={busy}
-                onSelect={setAnchor}
-                onEdit={startEditing}
-                onRegenerate={regenerate}
-              />
-            </>
-          )}
-        </div>
-
-        {!showSettings && !showSetup && (
-          <div className="flex flex-col gap-3 border-t bg-background px-6 py-4">
-            {editing !== null && (
-              <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2 text-sm">
-                <p className="text-muted-foreground">
-                  Editing creates a new version of the message; the original
-                  stays in the conversation.
-                </p>
-                <Button variant="ghost" size="sm" onClick={cancelEditing}>
-                  Cancel editing
-                </Button>
-              </div>
+            {storage.status === "failed" && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  Conversations cannot be saved: {storage.message}
+                </AlertDescription>
+              </Alert>
             )}
-            {graph !== null && parentId !== undefined && (
-              <ContextInspector
-                graph={graph}
-                draft={{ parentId, refs: [], content: draft }}
-                systemPrompt={
-                  settings === null || settings.systemPrompt === ""
-                    ? null
-                    : settings.systemPrompt
-                }
-              />
-            )}
-            <Composer
-              key={composerKey}
-              initialContent={editing?.content ?? ""}
-              busy={busy}
-              blockedReason={blockedReason}
-              autoFocus={editing !== null}
-              onChange={setDraft}
-              onSend={send}
-              onStop={() => {
-                controller?.abort();
-              }}
-              options={
-                settings === null ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      setShowSetup(true);
-                    }}
-                  >
-                    Connect a model
-                  </Button>
-                ) : (
-                  configuredModels.length > 1 &&
-                  model !== undefined && (
-                    <NativeSelect
-                      size="sm"
-                      aria-label="Model for the next answer"
-                      value={model}
+            <h2 className="px-1 pt-2 text-xs font-medium text-muted-foreground">
+              Conversations
+            </h2>
+            {conversations.length === 0 ? (
+              <p className="px-1 text-sm text-muted-foreground">
+                No conversations yet.
+              </p>
+            ) : (
+              <ul className="-mx-1 flex min-h-0 flex-col gap-0.5 overflow-y-auto px-1">
+                {conversations.map((c) => (
+                  <li key={c.id}>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start truncate font-normal aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-medium aria-[current=page]:text-sidebar-accent-foreground"
+                      aria-current={
+                        graph?.conversation.id === c.id ? "page" : undefined
+                      }
                       disabled={busy}
-                      onChange={(event) => {
-                        setModelChoice(event.target.value);
-                      }}
+                      onClick={() => void openConversation(c.id)}
                     >
-                      {configuredModels.map((option) => (
-                        <NativeSelectOption key={option} value={option}>
-                          {option}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
-                  )
-                )
-              }
+                      <span className="truncate">{c.title}</span>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </nav>
+        </ResizablePanel>
+        <ResizableHandle aria-label="Resize the sidebar" />
+        <ResizablePanel id="chat" minSize={360}>
+          <main className="flex h-full flex-col">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
+              {error !== null && (
+                <Alert variant="destructive">
+                  <CircleAlert aria-hidden="true" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              {showSettings ? (
+                <SettingsForm
+                  initial={settings}
+                  onSave={(next) => {
+                    saveSettings(next, settingsStorage);
+                    setSettings(next);
+                    setShowSettings(false);
+                    setShowSetup(false);
+                  }}
+                  onCancel={() => {
+                    setShowSettings(false);
+                  }}
+                  onStartSetup={() => {
+                    setShowSettings(false);
+                    setShowSetup(true);
+                  }}
+                />
+              ) : showSetup ? (
+                <SetupWizard
+                  origin={window.location.origin}
+                  systemPrompt={settings?.systemPrompt ?? ""}
+                  onComplete={(next) => {
+                    saveSettings(next, settingsStorage);
+                    setSettings(next);
+                    setShowSetup(false);
+                  }}
+                  onOpenDemo={() => void openDemo()}
+                  onSkip={() => {
+                    setShowSetup(false);
+                  }}
+                />
+              ) : graph === null ? (
+                <p className="m-auto text-sm text-muted-foreground">
+                  Start a new conversation below.
+                </p>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="truncate font-heading text-lg font-semibold tracking-tight">
+                      {graph.conversation.title}
+                    </h2>
+                    <Button variant="outline" size="sm" onClick={exportCurrent}>
+                      <Download aria-hidden="true" />
+                      Export conversation
+                    </Button>
+                  </div>
+                  <ReadingPane
+                    graph={graph}
+                    branch={branch}
+                    busy={busy}
+                    onSelect={setAnchor}
+                    onEdit={startEditing}
+                    onRegenerate={regenerate}
+                  />
+                </>
+              )}
+            </div>
+
+            {!showSettings && !showSetup && (
+              <div className="flex flex-col gap-3 border-t bg-background px-6 py-4">
+                {editing !== null && (
+                  <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2 text-sm">
+                    <p className="text-muted-foreground">
+                      Editing creates a new version of the message; the original
+                      stays in the conversation.
+                    </p>
+                    <Button variant="ghost" size="sm" onClick={cancelEditing}>
+                      Cancel editing
+                    </Button>
+                  </div>
+                )}
+                {graph !== null && parentId !== undefined && (
+                  <ContextInspector
+                    graph={graph}
+                    draft={{ parentId, refs: [], content: draft }}
+                    systemPrompt={
+                      settings === null || settings.systemPrompt === ""
+                        ? null
+                        : settings.systemPrompt
+                    }
+                  />
+                )}
+                <Composer
+                  key={composerKey}
+                  initialContent={editing?.content ?? ""}
+                  busy={busy}
+                  blockedReason={blockedReason}
+                  autoFocus={editing !== null}
+                  onChange={setDraft}
+                  onSend={send}
+                  onStop={() => {
+                    controller?.abort();
+                  }}
+                  options={
+                    settings === null ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setShowSetup(true);
+                        }}
+                      >
+                        Connect a model
+                      </Button>
+                    ) : (
+                      configuredModels.length > 1 &&
+                      model !== undefined && (
+                        <NativeSelect
+                          size="sm"
+                          aria-label="Model for the next answer"
+                          value={model}
+                          disabled={busy}
+                          onChange={(event) => {
+                            setModelChoice(event.target.value);
+                          }}
+                        >
+                          {configuredModels.map((option) => (
+                            <NativeSelectOption key={option} value={option}>
+                              {option}
+                            </NativeSelectOption>
+                          ))}
+                        </NativeSelect>
+                      )
+                    )
+                  }
+                />
+              </div>
+            )}
+          </main>
+        </ResizablePanel>
+        <ResizableHandle aria-label="Resize the map" />
+        <ResizablePanel id="map" defaultSize="40" minSize={240}>
+          {graph === null ? (
+            <section
+              className="flex h-full flex-col items-center justify-center gap-2 bg-muted/40 p-6 text-center text-sm text-muted-foreground"
+              aria-label="Conversation map"
+            >
+              <GitFork className="size-6" aria-hidden="true" />
+              <p>The map of the conversation appears here once it starts.</p>
+            </section>
+          ) : (
+            <ConversationMap
+              graph={graph}
+              branch={branch}
+              onSelect={(id) => {
+                if (!busy) setAnchor(id);
+              }}
+              onToggleCollapsed={toggleCollapsed}
+              onEdit={(turn) => {
+                if (busy) return;
+                setAnchor(turn.id);
+                startEditing(turn);
+              }}
             />
-          </div>
-        )}
-      </main>
+          )}
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }

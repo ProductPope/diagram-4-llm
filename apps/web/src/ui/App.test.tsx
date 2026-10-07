@@ -12,6 +12,21 @@ afterEach(() => {
   cleanup();
 });
 
+// jsdom computes no layout and has no ResizeObserver, which the resizable
+// panels require. Sizes are not under test here, so an observer that never
+// reports is enough.
+globalThis.ResizeObserver = class {
+  observe(): void {
+    // Never reports: jsdom has no layout to observe.
+  }
+  unobserve(): void {
+    // Nothing is observed.
+  }
+  disconnect(): void {
+    // Nothing is observed.
+  }
+};
+
 it("offers setup first, and asks for a provider before sending if it is skipped", async () => {
   render(
     <App

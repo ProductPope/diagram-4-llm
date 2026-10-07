@@ -252,6 +252,10 @@ Browser-specific constraints:
 
 ## 6. User interface
 
+- **Layout:** sidebar, conversation and map side by side, with the map on
+  the right as artifact panes are in chat apps. The widths are adjustable
+  with the mouse or the keyboard (shadcn's `resizable`, built on
+  `react-resizable-panels`) and kept in local storage.
 - **Canvas:** React Flow renders the tree; the layout is computed by the
   app (`apps/web/src/app/layout.ts`) as a tidy tree: each leaf gets a column,
   each parent is centred over its children, each depth is a row. Nodes are
