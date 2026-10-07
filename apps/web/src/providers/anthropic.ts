@@ -1,5 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { StopReason, TokenUsage } from "@diagram-4-llm/core";
+import type {
+  ProviderErrorInfo,
+  Result,
+  StopReason,
+  TokenUsage,
+} from "@diagram-4-llm/core";
 
 import type { ChatRequest, ProviderAdapter, StreamEvent } from "./types";
 
@@ -19,17 +24,44 @@ export interface AnthropicConfig {
 export function createAnthropicAdapter(
   config: AnthropicConfig,
 ): ProviderAdapter {
-  const client = new Anthropic({
+  const client = createClient(config);
+  return {
+    id: "anthropic",
+    stream: (request, signal) => streamMessage(client, request, signal),
+  };
+}
+
+/**
+ * The IDs of the models the key can use, for choosing models during setup.
+ * A successful call also confirms that the key works.
+ */
+export async function listAnthropicModels(
+  config: AnthropicConfig,
+  signal: AbortSignal,
+): Promise<Result<string[], ProviderErrorInfo>> {
+  const ids: string[] = [];
+  try {
+    // The page iterator requests further pages as it goes.
+    for await (const model of createClient(config).models.list(
+      { limit: 100 },
+      { signal },
+    )) {
+      ids.push(model.id);
+    }
+    return { ok: true, value: ids };
+  } catch (error) {
+    return { ok: false, error: toProviderError(error, signal) };
+  }
+}
+
+function createClient(config: AnthropicConfig): Anthropic {
+  return new Anthropic({
     apiKey: config.apiKey,
     // ADR 0002: the app runs entirely in the browser with the user's own
     // key. The README states the risk of keeping a key in the browser.
     dangerouslyAllowBrowser: true,
     ...(config.fetch === undefined ? {} : { fetch: config.fetch }),
   });
-  return {
-    id: "anthropic",
-    stream: (request, signal) => streamMessage(client, request, signal),
-  };
 }
 
 async function* streamMessage(
@@ -72,29 +104,29 @@ async function* streamMessage(
   } catch (error) {
     if (signal.aborted) {
       yield { type: "aborted" };
-    } else if (error instanceof Anthropic.APIConnectionError) {
-      yield {
-        type: "error",
-        error: { code: "network", message: error.message },
-      };
-    } else if (error instanceof Anthropic.APIError) {
-      yield {
-        type: "error",
-        error: {
-          code: error.type ?? `http-${String(error.status ?? "unknown")}`,
-          message: error.message,
-        },
-      };
     } else {
-      yield {
-        type: "error",
-        error: {
-          code: "unexpected",
-          message: error instanceof Error ? error.message : String(error),
-        },
-      };
+      yield { type: "error", error: toProviderError(error, signal) };
     }
   }
+}
+
+function toProviderError(
+  error: unknown,
+  signal: AbortSignal,
+): ProviderErrorInfo {
+  if (signal.aborted)
+    return { code: "aborted", message: "The request was cancelled." };
+  if (error instanceof Anthropic.APIConnectionError)
+    return { code: "network", message: error.message };
+  if (error instanceof Anthropic.APIError)
+    return {
+      code: error.type ?? `http-${String(error.status ?? "unknown")}`,
+      message: error.message,
+    };
+  return {
+    code: "unexpected",
+    message: error instanceof Error ? error.message : String(error),
+  };
 }
 
 function mapStopReason(reason: Anthropic.StopReason | null): StopReason {

@@ -2,7 +2,10 @@
 import type { AssembledContext } from "@diagram-4-llm/core";
 import { describe, expect, it } from "vitest";
 
-import { createOpenAICompatibleAdapter } from "./openai-compatible";
+import {
+  createOpenAICompatibleAdapter,
+  listOpenAICompatibleModels,
+} from "./openai-compatible";
 import {
   collect,
   jsonBody,
@@ -219,5 +222,91 @@ describe("openai-compatible adapter", () => {
       ).stream(request, controller.signal),
     );
     expect(events).toEqual([{ type: "aborted" }]);
+  });
+});
+
+describe("listOpenAICompatibleModels", () => {
+  const signal = new AbortController().signal;
+
+  it("reads model IDs from the list response and sends the key", async () => {
+    let seen: { url: string; init: RequestInit | undefined } | undefined;
+    const result = await listOpenAICompatibleModels(
+      {
+        baseUrl: "http://localhost:11434/v1/",
+        apiKey: "secret",
+        fetch: (input, init) => {
+          seen = { url: urlOf(input), init };
+          // The shape Ollama returns, including fields this code ignores.
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                object: "list",
+                data: [
+                  {
+                    id: "llama3.2",
+                    object: "model",
+                    created: 1,
+                    owned_by: "library",
+                  },
+                  {
+                    id: "qwen3",
+                    object: "model",
+                    created: 2,
+                    owned_by: "library",
+                  },
+                ],
+              }),
+            ),
+          );
+        },
+      },
+      signal,
+    );
+    expect(result).toEqual({ ok: true, value: ["llama3.2", "qwen3"] });
+    expect(seen?.url).toBe("http://localhost:11434/v1/models");
+    expect(new Headers(seen?.init?.headers).get("authorization")).toBe(
+      "Bearer secret",
+    );
+  });
+
+  it("reports an HTTP error with the server's message", async () => {
+    const result = await listOpenAICompatibleModels(
+      {
+        baseUrl: "http://localhost:1234/v1",
+        fetch: () =>
+          Promise.resolve(new Response("not found", { status: 404 })),
+      },
+      signal,
+    );
+    expect(result).toMatchObject({ ok: false, error: { code: "http-404" } });
+  });
+
+  it("rejects a response that is not a model list", async () => {
+    const result = await listOpenAICompatibleModels(
+      {
+        baseUrl: "http://localhost:1234/v1",
+        fetch: () =>
+          Promise.resolve(new Response(JSON.stringify({ models: [] }))),
+      },
+      signal,
+    );
+    expect(result).toMatchObject({
+      ok: false,
+      error: { code: "invalid-response" },
+    });
+  });
+
+  it("reports an unreachable server, which is also how CORS failures appear", async () => {
+    const result = await listOpenAICompatibleModels(
+      {
+        baseUrl: "http://localhost:1234/v1",
+        fetch: () => Promise.reject(new TypeError("Failed to fetch")),
+      },
+      signal,
+    );
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "network", message: "Failed to fetch" },
+    });
   });
 });

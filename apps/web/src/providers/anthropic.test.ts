@@ -2,12 +2,17 @@
 import type { AssembledContext } from "@diagram-4-llm/core";
 import { describe, expect, it } from "vitest";
 
-import { createAnthropicAdapter, DEFAULT_MAX_OUTPUT_TOKENS } from "./anthropic";
+import {
+  createAnthropicAdapter,
+  DEFAULT_MAX_OUTPUT_TOKENS,
+  listAnthropicModels,
+} from "./anthropic";
 import {
   collect,
   jsonBody,
   sse,
   streamedResponse,
+  urlOf,
 } from "./test-support/responses";
 import type { ChatRequest } from "./types";
 
@@ -167,5 +172,81 @@ describe("anthropic adapter", () => {
       ).stream(request, controller.signal),
     );
     expect(events).toEqual([{ type: "aborted" }]);
+  });
+});
+
+// Pages in the documented List Models format (the SDK's PageResponse and
+// ModelInfo types). Not recorded from the live API.
+function modelPage(ids: readonly string[], hasMore: boolean): Response {
+  return new Response(
+    JSON.stringify({
+      data: ids.map((id) => ({
+        type: "model",
+        id,
+        display_name: id,
+        created_at: "2026-01-01T00:00:00Z",
+      })),
+      has_more: hasMore,
+      first_id: ids[0] ?? null,
+      last_id: ids.at(-1) ?? null,
+    }),
+    { status: 200, headers: { "content-type": "application/json" } },
+  );
+}
+
+describe("listAnthropicModels", () => {
+  it("collects model IDs across pages", async () => {
+    const urls: string[] = [];
+    const result = await listAnthropicModels(
+      {
+        apiKey: "k",
+        fetch: (input) => {
+          urls.push(urlOf(input));
+          return Promise.resolve(
+            urls.length === 1
+              ? modelPage(["claude-opus-5-5", "claude-sonnet-5-5"], true)
+              : modelPage(["claude-haiku-4-5-20251001"], false),
+          );
+        },
+      },
+      new AbortController().signal,
+    );
+    expect(result).toEqual({
+      ok: true,
+      value: [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "claude-haiku-4-5-20251001",
+      ],
+    });
+    expect(urls).toHaveLength(2);
+    expect(urls[0]).toContain("/v1/models");
+    expect(urls[1]).toContain("after_id=claude-sonnet-5-5");
+  });
+
+  it("reports a rejected key as an error value", async () => {
+    const result = await listAnthropicModels(
+      {
+        apiKey: "wrong",
+        fetch: () =>
+          Promise.resolve(
+            new Response(
+              JSON.stringify({
+                type: "error",
+                error: {
+                  type: "authentication_error",
+                  message: "invalid x-api-key",
+                },
+              }),
+              { status: 401, headers: { "content-type": "application/json" } },
+            ),
+          ),
+      },
+      new AbortController().signal,
+    );
+    expect(result).toMatchObject({
+      ok: false,
+      error: { code: "authentication_error" },
+    });
   });
 });
