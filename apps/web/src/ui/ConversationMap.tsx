@@ -150,10 +150,7 @@ export function ConversationMap({
   }
 
   return (
-    <section
-      className="map min-h-0 border-r bg-muted/40"
-      aria-label="Conversation map"
-    >
+    <section className="map h-full bg-muted/40" aria-label="Conversation map">
       <ReactFlow
         nodes={nodes}
         edges={edges.filter(
