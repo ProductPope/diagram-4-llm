@@ -284,9 +284,11 @@ Browser-specific constraints:
   left and right between versions), Enter shows the focused turn's
   branch, and E on a message of the user starts editing it, which forks
   the conversation there. Each node has a context menu (right click, or
-  the context menu key): "Branch from here" on an answer starts a new
-  message after it, so the model sees the branch up to that answer and
-  nothing after it; "New version of this message" on a user message;
+  the context menu key): "Branch from here" starts a new message after
+  the node's exchange (after an answer, or after the answer to a question,
+  preferring the one on the selected branch), so the model sees the
+  branch up to there and nothing after it; "New version of this message"
+  on a user message;
   "Show in conversation"; and collapse or expand. Choosing a turn on the
   map scrolls the conversation to it. Moving focus alone never changes the branch
   being read.

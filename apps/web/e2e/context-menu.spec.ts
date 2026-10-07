@@ -54,6 +54,25 @@ test("branches from an earlier answer through the map's context menu", async ({
     map.locator(".map-node-user", { hasText: "Add a day in Kyoto" }),
   ).toBeVisible();
 
+  // Branching from a question keeps the whole exchange: the question and
+  // its answer.
+  await map
+    .locator(".map-node-user", { hasText: "Add a day in Kyoto" })
+    .click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Branch from here" }).click();
+  await input.fill("And a day in Osaka?");
+  await input.press("Control+Enter");
+  await expect(
+    transcript.getByText("Answer to: And a day in Osaka?"),
+  ).toBeVisible();
+  expect(sent.at(-1)?.map((m) => m.content)).toEqual([
+    "Plan a trip to Japan",
+    "Answer to: Plan a trip to Japan",
+    "Add a day in Kyoto",
+    "Answer to: Add a day in Kyoto",
+    "And a day in Osaka?",
+  ]);
+
   // The menu also opens from the keyboard, on the focused node.
   await map
     .locator(".map-node-user", { hasText: "Add a day in Kyoto" })
