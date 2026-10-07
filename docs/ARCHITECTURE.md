@@ -237,6 +237,12 @@ Browser-specific constraints:
   Turns found still streaming on load are marked aborted, keeping their
   content. The database schema is versioned; each future migration gets a
   test that upgrades a database of the previous version.
+- Conversations can be renamed and deleted from the sidebar. Deleting is
+  permanent and asks for confirmation first. Closing the open conversation
+  saves its pending changes, so when the open conversation is deleted it is
+  closed first: IndexedDB runs write transactions in the order they are
+  created, and the delete must come after that last save. An end-to-end
+  test holds back the delayed save with a paused clock to check this.
 - Export: one JSON document per conversation, containing `format`,
   `formatVersion`, the conversation, all nodes in creation order, and
   `NodeMeta`. The runtime schema is written with Zod. The published JSON

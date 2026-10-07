@@ -51,7 +51,7 @@ test("exports a conversation and imports it into a browser that has never seen i
   await expect(
     other
       .getByRole("navigation", { name: "Conversations" })
-      .getByRole("button", { name: "Which database?" }),
+      .getByRole("button", { name: "Which database?", exact: true }),
   ).toBeVisible();
 
   // Importing the same conversation again changes nothing.

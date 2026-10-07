@@ -2,6 +2,7 @@ import {
   createConversation,
   describeGraphError,
   isUsable,
+  renameConversation,
   setNodeMeta,
   type ConversationGraph,
   type GraphError,
@@ -29,6 +30,7 @@ import {
   Upload,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import { useDefaultLayout } from "react-resizable-panels";
 
 import { visibleBranch } from "../app/branch";
@@ -62,6 +64,7 @@ import {
 } from "../storage/conversation-store";
 import { Composer } from "./Composer";
 import { ContextInspector } from "./ContextInspector";
+import { ConversationList } from "./ConversationList";
 import { ConversationMap } from "./ConversationMap";
 import { ReadingPane } from "./ReadingPane";
 import { SettingsForm } from "./SettingsForm";
@@ -420,6 +423,57 @@ export function App({ openStore, settingsStorage }: AppProps) {
     await openConversation(DEMO_CONVERSATION_ID);
   };
 
+  const refreshList = async (store: ConversationStore) => {
+    const listed = await store.list();
+    if (listed.ok) setConversations(listed.value);
+    else setError(describeStorageError(listed.error));
+  };
+
+  // The open conversation is renamed in memory and saved like any other
+  // change; any other one is loaded, renamed and saved directly.
+  const renameStored = async (id: string, title: string) => {
+    if (storage.status !== "ready" || busy) return;
+    if (current !== null && current.get().conversation.id === id) {
+      current.set(renameConversation(current.get(), title));
+      return;
+    }
+    const loaded = await storage.store.load(id);
+    if (!loaded.ok) {
+      setError(describeStorageError(loaded.error));
+      return;
+    }
+    const saved = await storage.store.save(
+      renameConversation(loaded.value, title),
+      env.now(),
+    );
+    if (!saved.ok) {
+      setError(describeStorageError(saved.error));
+      return;
+    }
+    await refreshList(storage.store);
+  };
+
+  const deleteStored = async (id: string) => {
+    if (storage.status !== "ready" || busy) return;
+    if (current !== null && current.get().conversation.id === id) {
+      // Closing a conversation saves its pending changes. IndexedDB runs
+      // write transactions in the order they are created, so the close is
+      // committed first; otherwise that save would run after the delete
+      // and bring the conversation back.
+      flushSync(() => {
+        setCurrent(null);
+        setAnchor(null);
+        setEditing(null);
+      });
+    }
+    const removed = await storage.store.remove(id);
+    if (!removed.ok) {
+      setError(describeStorageError(removed.error));
+      return;
+    }
+    await refreshList(storage.store);
+  };
+
   const exportCurrent = () => {
     if (graph === null) return;
     const url = URL.createObjectURL(
@@ -565,29 +619,14 @@ export function App({ openStore, settingsStorage }: AppProps) {
             <h2 className="px-1 pt-2 text-xs font-medium text-muted-foreground">
               Conversations
             </h2>
-            {conversations.length === 0 ? (
-              <p className="px-1 text-sm text-muted-foreground">
-                No conversations yet.
-              </p>
-            ) : (
-              <ul className="-mx-1 flex min-h-0 flex-col gap-0.5 overflow-y-auto px-1">
-                {conversations.map((c) => (
-                  <li key={c.id}>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start truncate font-normal aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-medium aria-[current=page]:text-sidebar-accent-foreground"
-                      aria-current={
-                        graph?.conversation.id === c.id ? "page" : undefined
-                      }
-                      disabled={busy}
-                      onClick={() => void openConversation(c.id)}
-                    >
-                      <span className="truncate">{c.title}</span>
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <ConversationList
+              conversations={conversations}
+              currentId={graph?.conversation.id}
+              busy={busy}
+              onOpen={(id) => void openConversation(id)}
+              onRename={(id, title) => void renameStored(id, title)}
+              onDelete={(id) => void deleteStored(id)}
+            />
           </nav>
         </ResizablePanel>
         <ResizableHandle aria-label="Resize the sidebar" />
