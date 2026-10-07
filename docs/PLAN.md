@@ -135,6 +135,7 @@ consecutive weeks and records the friction points in issues.
 - [x] Markdown rendering of answers (no raw HTML; images shown as links)
 - [x] Consistent visual design for everything except the map, light and
       dark ([ADR 0007](adr/0007-design-system.md))
+- [x] A demo conversation that can be opened before connecting a provider
 - [x] Performance checked with a 1,000-turn conversation (render and branch
       switch budgets in an end-to-end test; panning frame rate not measured)
 
