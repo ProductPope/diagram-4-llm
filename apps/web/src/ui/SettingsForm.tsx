@@ -19,9 +19,15 @@ interface Props {
   readonly initial: ProviderSettings | null;
   readonly onSave: (settings: ProviderSettings) => void;
   readonly onCancel: () => void;
+  readonly onStartSetup: () => void;
 }
 
-export function SettingsForm({ initial, onSave, onCancel }: Props) {
+export function SettingsForm({
+  initial,
+  onSave,
+  onCancel,
+  onStartSetup,
+}: Props) {
   const [adapter, setAdapter] = useState<ProviderSettings["adapter"]>(
     initial?.adapter ?? "openai-compatible",
   );
@@ -169,11 +175,16 @@ export function SettingsForm({ initial, onSave, onCancel }: Props) {
             />
           </div>
         </CardContent>
-        <CardFooter className="mt-5 justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+        <CardFooter className="mt-5 justify-between gap-2">
+          <Button type="button" variant="ghost" onClick={onStartSetup}>
+            Use the setup assistant
           </Button>
-          <Button type="submit">Save</Button>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button type="submit">Save</Button>
+          </div>
         </CardFooter>
       </form>
     </Card>

@@ -59,6 +59,7 @@ import { ContextInspector } from "./ContextInspector";
 import { ConversationMap } from "./ConversationMap";
 import { ReadingPane } from "./ReadingPane";
 import { SettingsForm } from "./SettingsForm";
+import { SetupWizard } from "./SetupWizard";
 
 export interface AppProps {
   readonly openStore: () => Promise<StorageResult<ConversationStore>>;
@@ -90,6 +91,9 @@ export function App({ openStore, settingsStorage }: AppProps) {
     loadSettings(settingsStorage),
   );
   const [showSettings, setShowSettings] = useState(false);
+  // Offered on every start until a provider is configured; skipping hides
+  // it only for this visit.
+  const [showSetup, setShowSetup] = useState(() => settings === null);
   const [current, setCurrent] = useState<Store<ConversationGraph> | null>(null);
   const [anchor, setAnchor] = useState<NodeId | null>(null);
   const [editing, setEditing] = useState<Editing | null>(null);
@@ -351,6 +355,9 @@ export function App({ openStore, settingsStorage }: AppProps) {
       setError(describeStorageError(loaded.error));
       return;
     }
+    // Choosing a conversation, the demo included, takes the user out of
+    // setup; it stays available from the composer and from Settings.
+    setShowSetup(false);
     setCurrent(createStore(loaded.value));
     setAnchor(null);
     setEditing(null);
@@ -575,9 +582,28 @@ export function App({ openStore, settingsStorage }: AppProps) {
                 saveSettings(next, settingsStorage);
                 setSettings(next);
                 setShowSettings(false);
+                setShowSetup(false);
               }}
               onCancel={() => {
                 setShowSettings(false);
+              }}
+              onStartSetup={() => {
+                setShowSettings(false);
+                setShowSetup(true);
+              }}
+            />
+          ) : showSetup ? (
+            <SetupWizard
+              origin={window.location.origin}
+              systemPrompt={settings?.systemPrompt ?? ""}
+              onComplete={(next) => {
+                saveSettings(next, settingsStorage);
+                setSettings(next);
+                setShowSetup(false);
+              }}
+              onOpenDemo={() => void openDemo()}
+              onSkip={() => {
+                setShowSetup(false);
               }}
             />
           ) : graph === null ? (
@@ -607,7 +633,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
           )}
         </div>
 
-        {!showSettings && (
+        {!showSettings && !showSetup && (
           <div className="flex flex-col gap-3 border-t bg-background px-6 py-4">
             {editing !== null && (
               <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2 text-sm">
@@ -643,23 +669,36 @@ export function App({ openStore, settingsStorage }: AppProps) {
                 controller?.abort();
               }}
               options={
-                configuredModels.length > 1 &&
-                model !== undefined && (
-                  <NativeSelect
+                settings === null ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
                     size="sm"
-                    aria-label="Model for the next answer"
-                    value={model}
-                    disabled={busy}
-                    onChange={(event) => {
-                      setModelChoice(event.target.value);
+                    onClick={() => {
+                      setShowSetup(true);
                     }}
                   >
-                    {configuredModels.map((option) => (
-                      <NativeSelectOption key={option} value={option}>
-                        {option}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
+                    Connect a model
+                  </Button>
+                ) : (
+                  configuredModels.length > 1 &&
+                  model !== undefined && (
+                    <NativeSelect
+                      size="sm"
+                      aria-label="Model for the next answer"
+                      value={model}
+                      disabled={busy}
+                      onChange={(event) => {
+                        setModelChoice(event.target.value);
+                      }}
+                    >
+                      {configuredModels.map((option) => (
+                        <NativeSelectOption key={option} value={option}>
+                          {option}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  )
                 )
               }
             />

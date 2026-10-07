@@ -288,6 +288,15 @@ Browser-specific constraints:
   takes focus when editing a message starts.
 - **Context inspector:** the assembled messages, their sources and the
   token estimate, available before sending and stored with each answer.
+- **Setup:** until a provider is configured, the app opens on a setup
+  assistant (`apps/web/src/ui/SetupWizard.tsx`): choose a provider, enter a
+  key or a server address, test the connection, and pick models from the
+  ones the provider lists (`GET /v1/models` on both APIs). The connection
+  test is the only request setup makes, and it goes only to the chosen
+  provider. Titles stay off unless chosen. Setup can be skipped; it is
+  offered again on the next visit, and from Settings and the composer at any
+  time. The demo conversation (`apps/web/src/app/demo.ts`) can be opened
+  without a provider; its answers are labelled as written by hand.
 
 Performance budget: an end-to-end test imports a generated conversation of
 1,000 turns and requires the first render within 3 s and a branch switch

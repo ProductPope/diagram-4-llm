@@ -136,6 +136,8 @@ consecutive weeks and records the friction points in issues.
 - [x] Consistent visual design for everything except the map, light and
       dark ([ADR 0007](adr/0007-design-system.md))
 - [x] A demo conversation that can be opened before connecting a provider
+- [x] A setup assistant on first start: provider, connection test, models
+      chosen from the provider's list
 - [x] Performance checked with a 1,000-turn conversation (render and branch
       switch budgets in an end-to-end test; panning frame rate not measured)
 

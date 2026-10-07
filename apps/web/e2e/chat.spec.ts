@@ -101,8 +101,11 @@ test("branches a conversation, sends only the branch's context, and keeps it aft
   expect(consoleErrors).toEqual([]);
 });
 
-test("asks for a provider before sending", async ({ page }) => {
+test("asks for a provider before sending if setup is skipped", async ({
+  page,
+}) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "Skip for now" }).click();
   await expect(
     page.getByText("Configure a provider in Settings before sending."),
   ).toBeVisible();

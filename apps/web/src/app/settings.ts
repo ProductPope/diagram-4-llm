@@ -1,7 +1,14 @@
+import type { ProviderErrorInfo, Result } from "@diagram-4-llm/core";
 import { z } from "zod";
 
-import { createAnthropicAdapter } from "../providers/anthropic";
-import { createOpenAICompatibleAdapter } from "../providers/openai-compatible";
+import {
+  createAnthropicAdapter,
+  listAnthropicModels,
+} from "../providers/anthropic";
+import {
+  createOpenAICompatibleAdapter,
+  listOpenAICompatibleModels,
+} from "../providers/openai-compatible";
 import type { ProviderAdapter } from "../providers/types";
 
 /** Models offered when sending; the first is the default for new branches. */
@@ -65,6 +72,31 @@ export function createAdapter(settings: ProviderSettings): ProviderAdapter {
         baseUrl: settings.baseUrl,
         ...(settings.apiKey === "" ? {} : { apiKey: settings.apiKey }),
       });
+}
+
+/** Where answers come from, before any models are chosen. */
+export type Connection =
+  | { readonly adapter: "anthropic"; readonly apiKey: string }
+  | {
+      readonly adapter: "openai-compatible";
+      readonly baseUrl: string;
+      readonly apiKey: string;
+    };
+
+/** The models a connection offers; a successful result confirms it works. */
+export function listModels(
+  connection: Connection,
+  signal: AbortSignal,
+): Promise<Result<string[], ProviderErrorInfo>> {
+  return connection.adapter === "anthropic"
+    ? listAnthropicModels({ apiKey: connection.apiKey }, signal)
+    : listOpenAICompatibleModels(
+        {
+          baseUrl: connection.baseUrl,
+          ...(connection.apiKey === "" ? {} : { apiKey: connection.apiKey }),
+        },
+        signal,
+      );
 }
 
 /**
