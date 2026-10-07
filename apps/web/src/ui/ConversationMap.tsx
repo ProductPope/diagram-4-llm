@@ -1,5 +1,4 @@
 import {
-  isUsable,
   type ConversationGraph,
   type NodeId,
   type TurnNode,
@@ -33,6 +32,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { branchPoint } from "../app/branchPoint";
 import { visibleForest } from "../app/collapse";
 import {
   layoutForest,
@@ -46,6 +46,8 @@ interface TurnData extends Record<string, unknown> {
   readonly turn: TurnNode;
   readonly onBranch: boolean;
   readonly isTip: boolean;
+  /** The answer a new branch from this node continues from, if any. */
+  readonly branchFrom: NodeId | undefined;
   /** A generated or user-given title, shown instead of the message start. */
   readonly title: string | undefined;
   /** The one node in the tab order; arrow keys move focus from it. */
@@ -84,7 +86,8 @@ const nodeTypes = { turn: TurnNodeView };
  * layout; Enter shows the focused turn's branch, and E edits a focused
  * message of the user, which forks the conversation at that message.
  * Each node also has a context menu (right click, or the keyboard's
- * context menu key) with the same actions plus branching from an answer.
+ * context menu key) with the same actions plus "Branch from here", which
+ * continues after the node's exchange (see branchPoint).
  */
 export function ConversationMap({
   graph,
@@ -161,6 +164,7 @@ export function ConversationMap({
         turn: node,
         onBranch: onBranch.has(node.id),
         isTip: node.id === tipId,
+        branchFrom: branchPoint(graph, node, onBranch),
         title: graph.meta.get(node.id)?.title,
         isActive: node.id === activeId,
         ...(children.has(node.id) ? { fold: { hidden: hidden ?? 0 } } : {}),
@@ -275,6 +279,7 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
     turn,
     onBranch,
     isTip,
+    branchFrom,
     title,
     isActive,
     fold,
@@ -341,17 +346,16 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
           </button>
         </ContextMenuTrigger>
         <ContextMenuContent className="w-56">
-          {turn.kind === "assistant" ? (
-            <ContextMenuItem
-              disabled={!isUsable(turn)}
-              onSelect={() => {
-                onBranchFrom(turn.id);
-              }}
-            >
-              <GitFork aria-hidden="true" />
-              Branch from here
-            </ContextMenuItem>
-          ) : (
+          <ContextMenuItem
+            disabled={branchFrom === undefined}
+            onSelect={() => {
+              if (branchFrom !== undefined) onBranchFrom(branchFrom);
+            }}
+          >
+            <GitFork aria-hidden="true" />
+            Branch from here
+          </ContextMenuItem>
+          {turn.kind === "user" && (
             <ContextMenuItem
               onSelect={() => {
                 onEdit(turn);
