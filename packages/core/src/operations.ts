@@ -193,6 +193,17 @@ export function addSummary(
   return insertNode(graph, summary);
 }
 
+/**
+ * Gives the conversation a new title. The title is free text, as when the
+ * conversation is created, and the turns are not affected.
+ */
+export function renameConversation(
+  graph: ConversationGraph,
+  title: string,
+): ConversationGraph {
+  return { ...graph, conversation: { ...graph.conversation, title } };
+}
+
 /** Replaces the presentation state of a node. */
 export function setNodeMeta(
   graph: ConversationGraph,

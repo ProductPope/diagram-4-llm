@@ -28,6 +28,7 @@ export {
   appendAssistantContent,
   createConversation,
   finishAssistantTurn,
+  renameConversation,
   setNodeMeta,
   startAssistantTurn,
 } from "./operations.js";

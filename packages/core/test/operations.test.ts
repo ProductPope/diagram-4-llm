@@ -8,6 +8,7 @@ import {
   createConversation,
   finishAssistantTurn,
   pathTo,
+  renameConversation,
   setNodeMeta,
   startAssistantTurn,
   type ConversationGraph,
@@ -341,5 +342,20 @@ describe("setNodeMeta", () => {
       code: "unknown-node",
       id: "nope",
     });
+  });
+});
+
+describe("renameConversation", () => {
+  it("changes the title and nothing else, without changing the input", () => {
+    const original = say(newGraph(), "u1", null, "Hello");
+    const renamed = renameConversation(original, "Trip planning");
+
+    expect(renamed.conversation).toEqual({
+      ...original.conversation,
+      title: "Trip planning",
+    });
+    expect(renamed.nodes).toBe(original.nodes);
+    expect(renamed.meta).toBe(original.meta);
+    expect(original.conversation.title).not.toBe("Trip planning");
   });
 });
