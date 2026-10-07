@@ -1,4 +1,16 @@
-import type { ConversationGraph, NodeId, TurnNode } from "@diagram-4-llm/core";
+import {
+  isUsable,
+  type ConversationGraph,
+  type NodeId,
+  type TurnNode,
+} from "@diagram-4-llm/core";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "#components/ui/context-menu";
 import {
   Background,
   BackgroundVariant,
@@ -12,6 +24,13 @@ import {
   type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import {
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Eye,
+  GitFork,
+  Pencil,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { visibleForest } from "../app/collapse";
@@ -36,6 +55,7 @@ interface TurnData extends Record<string, unknown> {
   readonly onSelect: (id: NodeId) => void;
   readonly onToggleCollapsed: (id: NodeId) => void;
   readonly onEdit: (turn: TurnNode) => void;
+  readonly onBranchFrom: (answerId: NodeId) => void;
   readonly onFocusTurn: (id: NodeId) => void;
   readonly onNavigate: (id: NodeId, direction: Direction) => void;
 }
@@ -48,6 +68,7 @@ interface Props {
   readonly onSelect: (id: NodeId) => void;
   readonly onToggleCollapsed: (id: NodeId) => void;
   readonly onEdit: (turn: TurnNode) => void;
+  readonly onBranchFrom: (answerId: NodeId) => void;
 }
 
 const nodeTypes = { turn: TurnNodeView };
@@ -62,6 +83,8 @@ const nodeTypes = { turn: TurnNodeView };
  * (up), a reply (down) or another version (left, right), following the
  * layout; Enter shows the focused turn's branch, and E edits a focused
  * message of the user, which forks the conversation at that message.
+ * Each node also has a context menu (right click, or the keyboard's
+ * context menu key) with the same actions plus branching from an answer.
  */
 export function ConversationMap({
   graph,
@@ -69,6 +92,7 @@ export function ConversationMap({
   onSelect,
   onToggleCollapsed,
   onEdit,
+  onBranchFrom,
 }: Props) {
   const [focusId, setFocusId] = useState<NodeId | null>(null);
   const [keyboardMove, setKeyboardMove] = useState<{
@@ -143,6 +167,7 @@ export function ConversationMap({
         onSelect,
         onToggleCollapsed,
         onEdit,
+        onBranchFrom,
         onFocusTurn: setFocusId,
         onNavigate,
       },
@@ -256,6 +281,7 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
     onSelect,
     onToggleCollapsed,
     onEdit,
+    onBranchFrom,
     onFocusTurn,
     onNavigate,
   } = data;
@@ -268,47 +294,100 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
   return (
     <>
       <Handle type="target" position={Position.Top} isConnectable={false} />
-      <button
-        type="button"
-        className={classes.filter((c) => c !== "").join(" ")}
-        aria-current={isTip ? "true" : undefined}
-        aria-keyshortcuts={
-          turn.kind === "user"
-            ? "ArrowUp ArrowDown ArrowLeft ArrowRight E"
-            : "ArrowUp ArrowDown ArrowLeft ArrowRight"
-        }
-        data-turn-id={turn.id}
-        tabIndex={isActive ? 0 : -1}
-        title={turn.content}
-        onClick={() => {
-          onSelect(turn.id);
-        }}
-        onFocus={() => {
-          onFocusTurn(turn.id);
-        }}
-        onKeyDown={(event) => {
-          if (
-            turn.kind === "user" &&
-            event.key.toLowerCase() === "e" &&
-            !event.ctrlKey &&
-            !event.metaKey &&
-            !event.altKey
-          ) {
-            event.preventDefault();
-            onEdit(turn);
-            return;
-          }
-          const direction = KEY_DIRECTIONS[event.key];
-          if (direction === undefined) return;
-          event.preventDefault();
-          onNavigate(turn.id, direction);
-        }}
-      >
-        <span className="map-node-role">
-          {turn.kind === "user" ? "You" : turn.generation.model}
-        </span>
-        <span className="map-node-label">{title ?? labelOf(turn)}</span>
-      </button>
+      {/* Not modal: a modal menu locks page scrolling with an injected
+          style element, which the Content Security Policy blocks. */}
+      <ContextMenu modal={false}>
+        <ContextMenuTrigger asChild>
+          <button
+            type="button"
+            className={classes.filter((c) => c !== "").join(" ")}
+            aria-current={isTip ? "true" : undefined}
+            aria-keyshortcuts={
+              turn.kind === "user"
+                ? "ArrowUp ArrowDown ArrowLeft ArrowRight E"
+                : "ArrowUp ArrowDown ArrowLeft ArrowRight"
+            }
+            data-turn-id={turn.id}
+            tabIndex={isActive ? 0 : -1}
+            title={turn.content}
+            onClick={() => {
+              onSelect(turn.id);
+            }}
+            onFocus={() => {
+              onFocusTurn(turn.id);
+            }}
+            onKeyDown={(event) => {
+              if (
+                turn.kind === "user" &&
+                event.key.toLowerCase() === "e" &&
+                !event.ctrlKey &&
+                !event.metaKey &&
+                !event.altKey
+              ) {
+                event.preventDefault();
+                onEdit(turn);
+                return;
+              }
+              const direction = KEY_DIRECTIONS[event.key];
+              if (direction === undefined) return;
+              event.preventDefault();
+              onNavigate(turn.id, direction);
+            }}
+          >
+            <span className="map-node-role">
+              {turn.kind === "user" ? "You" : turn.generation.model}
+            </span>
+            <span className="map-node-label">{title ?? labelOf(turn)}</span>
+          </button>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-56">
+          {turn.kind === "assistant" ? (
+            <ContextMenuItem
+              disabled={!isUsable(turn)}
+              onSelect={() => {
+                onBranchFrom(turn.id);
+              }}
+            >
+              <GitFork aria-hidden="true" />
+              Branch from here
+            </ContextMenuItem>
+          ) : (
+            <ContextMenuItem
+              onSelect={() => {
+                onEdit(turn);
+              }}
+            >
+              <Pencil aria-hidden="true" />
+              New version of this message
+            </ContextMenuItem>
+          )}
+          <ContextMenuItem
+            onSelect={() => {
+              onSelect(turn.id);
+            }}
+          >
+            <Eye aria-hidden="true" />
+            Show in conversation
+          </ContextMenuItem>
+          {fold !== undefined && (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                onSelect={() => {
+                  onToggleCollapsed(turn.id);
+                }}
+              >
+                {fold.hidden === 0 ? (
+                  <ChevronsDownUp aria-hidden="true" />
+                ) : (
+                  <ChevronsUpDown aria-hidden="true" />
+                )}
+                {fold.hidden === 0 ? "Collapse replies" : "Expand replies"}
+              </ContextMenuItem>
+            </>
+          )}
+        </ContextMenuContent>
+      </ContextMenu>
       {fold !== undefined && (
         <button
           type="button"

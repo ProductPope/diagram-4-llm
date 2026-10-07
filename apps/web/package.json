@@ -23,6 +23,7 @@
     "@anthropic-ai/sdk": "^0.131.0",
     "@diagram-4-llm/core": "workspace:*",
     "@fontsource-variable/geist": "^5.3.0",
+    "@radix-ui/react-context-menu": "^2.3.8",
     "@radix-ui/react-label": "^2.1.16",
     "@radix-ui/react-slot": "^1.4.0",
     "@xyflow/react": "^12.12.0",

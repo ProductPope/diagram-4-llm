@@ -77,7 +77,13 @@ type StorageState =
   | { readonly status: "ready"; readonly store: ConversationStore }
   | { readonly status: "failed"; readonly message: string };
 
+/**
+ * The composer writing somewhere other than the end of the branch: a new
+ * version of an existing message, or a new message after an earlier answer.
+ * Either way the original turns stay as they are.
+ */
 interface Editing {
+  readonly kind: "edit" | "branch";
   readonly parentId: NodeId | null;
   readonly content: string;
 }
@@ -353,8 +359,21 @@ export function App({ openStore, settingsStorage }: AppProps) {
   };
 
   const startEditing = (turn: TurnNode) => {
-    setEditing({ parentId: turn.parentId, content: turn.content });
+    setEditing({
+      kind: "edit",
+      parentId: turn.parentId,
+      content: turn.content,
+    });
     setDraft(turn.content);
+    setComposerKey((key) => key + 1);
+  };
+
+  // The new message continues from the answer, so the model sees the
+  // branch up to that answer and nothing that came after it.
+  const startBranch = (answerId: NodeId) => {
+    setAnchor(answerId);
+    setEditing({ kind: "branch", parentId: answerId, content: "" });
+    setDraft("");
     setComposerKey((key) => key + 1);
   };
 
@@ -645,11 +664,14 @@ export function App({ openStore, settingsStorage }: AppProps) {
                 {editing !== null && (
                   <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2 text-sm">
                     <p className="text-muted-foreground">
-                      Editing creates a new version of the message; the original
-                      stays in the conversation.
+                      {editing.kind === "edit"
+                        ? "Editing creates a new version of the message; the original stays in the conversation."
+                        : "New branch from the selected answer. The model sees the conversation up to that answer, and nothing after it."}
                     </p>
                     <Button variant="ghost" size="sm" onClick={cancelEditing}>
-                      Cancel editing
+                      {editing.kind === "edit"
+                        ? "Cancel editing"
+                        : "Cancel branch"}
                     </Button>
                   </div>
                 )}
@@ -741,6 +763,9 @@ export function App({ openStore, settingsStorage }: AppProps) {
                 if (busy) return;
                 setAnchor(turn.id);
                 startEditing(turn);
+              }}
+              onBranchFrom={(answerId) => {
+                if (!busy) startBranch(answerId);
               }}
             />
           )}
