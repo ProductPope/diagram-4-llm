@@ -102,6 +102,10 @@ export function App({ openStore, settingsStorage }: AppProps) {
   const [showSetup, setShowSetup] = useState(() => settings === null);
   const [current, setCurrent] = useState<Store<ConversationGraph> | null>(null);
   const [anchor, setAnchor] = useState<NodeId | null>(null);
+  const [reveal, setReveal] = useState<{
+    readonly id: NodeId;
+    readonly request: number;
+  } | null>(null);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [composerKey, setComposerKey] = useState(0);
   const [draft, setDraft] = useState("");
@@ -630,6 +634,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
                     onSelect={setAnchor}
                     onEdit={startEditing}
                     onRegenerate={regenerate}
+                    reveal={reveal}
                   />
                 </>
               )}
@@ -723,7 +728,13 @@ export function App({ openStore, settingsStorage }: AppProps) {
               graph={graph}
               branch={branch}
               onSelect={(id) => {
-                if (!busy) setAnchor(id);
+                if (busy) return;
+                setAnchor(id);
+                // The map is for finding a turn; the conversation shows it.
+                setReveal((previous) => ({
+                  id,
+                  request: (previous?.request ?? 0) + 1,
+                }));
               }}
               onToggleCollapsed={toggleCollapsed}
               onEdit={(turn) => {

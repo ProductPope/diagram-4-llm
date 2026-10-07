@@ -10,6 +10,8 @@ import { Button } from "#components/ui/button";
 import { cn } from "#lib/utils";
 import { ChevronLeft, ChevronRight, Pencil, RotateCcw } from "lucide-react";
 
+import { useEffect, useRef, useState } from "react";
+
 import { siblingsOf } from "../app/branch";
 import { MarkdownContent } from "./MarkdownContent";
 
@@ -20,7 +22,15 @@ interface Props {
   readonly onSelect: (anchor: NodeId) => void;
   readonly onEdit: (turn: TurnNode) => void;
   readonly onRegenerate: (userTurnId: NodeId) => void;
+  /**
+   * A turn chosen elsewhere, such as on the map, to scroll into view. A new
+   * request scrolls again even if it names the same turn.
+   */
+  readonly reveal: { readonly id: NodeId; readonly request: number } | null;
 }
+
+/** How long a revealed turn stays highlighted. */
+const HIGHLIGHT_MS = 1500;
 
 /**
  * The selected branch as a linear transcript. Answers are rendered as
@@ -33,7 +43,33 @@ export function ReadingPane({
   onSelect,
   onEdit,
   onRegenerate,
+  reveal,
 }: Props) {
+  const list = useRef<HTMLOListElement>(null);
+  const [highlighted, setHighlighted] = useState<NodeId | null>(null);
+
+  useEffect(() => {
+    if (reveal === null) return;
+    const element = list.current?.querySelector(
+      `[data-turn-id="${reveal.id}"]`,
+    );
+    if (element === null || element === undefined) return;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    element.scrollIntoView({
+      block: "start",
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+    setHighlighted(reveal.id);
+    const timer = setTimeout(() => {
+      setHighlighted(null);
+    }, HIGHLIGHT_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [reveal]);
+
   if (branch.length === 0) {
     return (
       <p className="m-auto text-sm text-muted-foreground">
@@ -42,15 +78,17 @@ export function ReadingPane({
     );
   }
   return (
-    <ol className="flex flex-col gap-5" aria-label="Selected branch">
+    <ol ref={list} className="flex flex-col gap-5" aria-label="Selected branch">
       {branch.map((turn) => {
         const { siblings, index } = siblingsOf(graph, turn);
         return (
           <li
             key={turn.id}
+            data-turn-id={turn.id}
             className={cn(
-              "group/turn flex flex-col gap-2",
+              "group/turn -mx-2 flex scroll-mt-4 flex-col gap-2 rounded-xl px-2 py-1 transition-colors duration-500",
               turn.kind === "user" && "items-end",
+              highlighted === turn.id && "bg-branch/10",
             )}
             aria-label={turn.kind === "user" ? "Your message" : "Answer"}
           >
