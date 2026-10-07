@@ -20,11 +20,13 @@ import {
   Network,
   Plus,
   Settings2,
+  Sparkles,
   Upload,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { visibleBranch } from "../app/branch";
+import { DEMO_CONVERSATION_ID, demoConversation } from "../app/demo";
 import {
   exportFileName,
   parseConversationFile,
@@ -354,6 +356,28 @@ export function App({ openStore, settingsStorage }: AppProps) {
     setEditing(null);
   };
 
+  // The demo is saved like any other conversation the first time, so it can
+  // be continued, exported or deleted; later it is only opened, never reset.
+  const openDemo = async () => {
+    if (storage.status !== "ready" || busy) return;
+    if (!conversations.some((c) => c.id === DEMO_CONVERSATION_ID)) {
+      const built = demoConversation();
+      if (!built.ok) {
+        setError(describeGraphError(built.error));
+        return;
+      }
+      const saved = await storage.store.save(built.value, env.now());
+      if (!saved.ok) {
+        setError(describeStorageError(saved.error));
+        return;
+      }
+      const listed = await storage.store.list();
+      if (listed.ok) setConversations(listed.value);
+    }
+    setError(null);
+    await openConversation(DEMO_CONVERSATION_ID);
+  };
+
   const exportCurrent = () => {
     if (graph === null) return;
     const url = URL.createObjectURL(
@@ -465,6 +489,15 @@ export function App({ openStore, settingsStorage }: AppProps) {
             }}
           />
         </label>
+        <Button
+          variant="ghost"
+          className="justify-start"
+          disabled={busy || storage.status !== "ready"}
+          onClick={() => void openDemo()}
+        >
+          <Sparkles aria-hidden="true" />
+          Open the demo
+        </Button>
         <p className="px-1 text-xs text-muted-foreground" role="status">
           {saveStateText(saveState)}
         </p>
