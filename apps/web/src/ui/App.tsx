@@ -357,7 +357,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
   };
 
   // The demo is saved like any other conversation the first time, so it can
-  // be continued, exported or deleted; later it is only opened, never reset.
+  // be continued or exported; later it is only opened, never reset.
   const openDemo = async () => {
     if (storage.status !== "ready" || busy) return;
     if (!conversations.some((c) => c.id === DEMO_CONVERSATION_ID)) {
