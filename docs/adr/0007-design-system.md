@@ -55,7 +55,10 @@ CSS utility classes and CSS variables for colours.
   unlayered rules always win over layered ones.
 - The app follows the system colour scheme (`prefers-color-scheme`); there
   is no theme switch. One token is added to the preset: `--branch`, the
-  colour of the selected branch on the map.
+  colour of the selected branch on the map. One is changed: `--ring` is
+  the foreground colour, because the preset's grey, drawn at half opacity
+  by the components, gives focus rings a contrast below the 3:1 of WCAG
+  1.4.11.
 - The Geist font is bundled from `@fontsource-variable/geist`, so no font
   is loaded from a third party at runtime.
 
