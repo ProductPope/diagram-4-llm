@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
 
+import {
+  answerEveryRequest,
+  configureProvider,
+  ENDPOINT,
+  type SentMessage,
+} from "./support";
+
 /** A short session in the shape Claude Code 2.1.294 writes. */
 function transcript(): string {
   const prompt = (uuid: string, parentUuid: string | null, text: string) => ({
@@ -131,5 +138,67 @@ test("explains a file that is not a session transcript", async ({ page }) => {
   });
   await expect(page.getByRole("alert")).toContainText(
     "notes.jsonl could not be opened: The file is not a Claude Code session transcript: line 1: The line has no type.",
+  );
+});
+
+test("divides the selected branch into topics on request", async ({ page }) => {
+  const sent: SentMessage[][] = [];
+  await page.route(ENDPOINT, (route) =>
+    answerEveryRequest(
+      route,
+      sent,
+      () => "Topics:\n1: Failing build\n2: Why it failed",
+    ),
+  );
+  await page.goto("/#/app");
+  await configureProvider(page);
+  await page.getByRole("button", { name: "Map a Claude Code session" }).click();
+  await page.getByLabel("Open a session transcript").setInputFiles({
+    name: "session.jsonl",
+    mimeType: "application/jsonl",
+    buffer: Buffer.from(transcript()),
+  });
+
+  const topics = page.getByRole("region", { name: "Topics" });
+  await expect(
+    topics.getByText(
+      "Sends the start of each prompt on this branch to test-model.",
+    ),
+  ).toBeVisible();
+  expect(sent).toHaveLength(0);
+  await topics.getByRole("button", { name: "Detect topics" }).click();
+
+  // Only the prompts of the selected branch were sent, numbered.
+  const branch = page.getByRole("list", { name: "Selected branch" });
+  await expect(
+    branch.getByRole("heading", { name: "Why it failed" }),
+  ).toBeVisible();
+  await expect(
+    branch.getByRole("heading", { name: "Failing build" }),
+  ).toBeVisible();
+  expect(sent).toHaveLength(1);
+  expect(sent[0]?.at(-1)?.content).toBe(
+    "1. The build fails\n2. Explain it instead",
+  );
+  await expect(
+    topics.getByRole("button", { name: "Why it failed" }),
+  ).toBeVisible();
+  await expect(
+    topics.getByRole("button", { name: "Detect topics again" }),
+  ).toBeEnabled();
+});
+
+test("asks for a provider before topics can be detected", async ({ page }) => {
+  await page.goto("/#/session");
+  await page.getByLabel("Open a session transcript").setInputFiles({
+    name: "session.jsonl",
+    mimeType: "application/jsonl",
+    buffer: Buffer.from(transcript()),
+  });
+  await expect(
+    page.getByText("Set up a provider to divide this session into topics."),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Detect topics" })).toHaveCount(
+    0,
   );
 });
