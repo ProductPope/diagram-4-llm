@@ -34,6 +34,7 @@ import { useEffect, useState } from "react";
 
 import { branchPoint } from "../app/branchPoint";
 import { visibleForest } from "../app/collapse";
+import { labelOf } from "../app/label";
 import {
   layoutForest,
   NODE_HEIGHT,
@@ -413,13 +414,4 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
       <Handle type="source" position={Position.Bottom} isConnectable={false} />
     </>
   );
-}
-
-function labelOf(turn: TurnNode): string {
-  const text = turn.content.trim().replace(/\s+/g, " ");
-  if (text === "")
-    return turn.kind === "assistant" && turn.status === "streaming"
-      ? "…"
-      : "(empty)";
-  return text.length > 48 ? `${text.slice(0, 47)}…` : text;
 }

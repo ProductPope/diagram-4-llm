@@ -27,6 +27,11 @@ interface Props {
    * request scrolls again even if it names the same turn.
    */
   readonly reveal: { readonly id: NodeId; readonly request: number } | null;
+  /**
+   * Called with the turns that are on screen whenever that changes. The
+   * pane only watches its turns while this is given.
+   */
+  readonly onTurnsInView?: ((ids: ReadonlySet<NodeId>) => void) | undefined;
 }
 
 /** How long a revealed turn stays highlighted. */
@@ -44,6 +49,7 @@ export function ReadingPane({
   onEdit,
   onRegenerate,
   reveal,
+  onTurnsInView,
 }: Props) {
   const list = useRef<HTMLOListElement>(null);
   const [highlighted, setHighlighted] = useState<NodeId | null>(null);
@@ -69,6 +75,31 @@ export function ReadingPane({
       clearTimeout(timer);
     };
   }, [reveal]);
+
+  // The observer reads the turns from the DOM, so it is set up again when
+  // the branch shows other turns.
+  const turnIds = branch.map((turn) => turn.id).join(" ");
+  useEffect(() => {
+    const element = list.current;
+    if (onTurnsInView === undefined || element === null) return;
+    const inView = new Set<NodeId>();
+    // Clipping by the scrolling conversation counts, so a turn scrolled
+    // out of the pane is not in view even while it is inside the window.
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const id = entry.target.getAttribute("data-turn-id");
+        if (id === null) continue;
+        if (entry.isIntersecting) inView.add(id);
+        else inView.delete(id);
+      }
+      onTurnsInView(new Set(inView));
+    });
+    for (const turn of element.querySelectorAll("[data-turn-id]"))
+      observer.observe(turn);
+    return () => {
+      observer.disconnect();
+    };
+  }, [turnIds, onTurnsInView]);
 
   if (branch.length === 0) {
     return (

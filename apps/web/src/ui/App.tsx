@@ -23,6 +23,7 @@ import {
   CircleAlert,
   Download,
   GitFork,
+  PanelRightClose,
   Plus,
   Settings2,
   Sparkles,
@@ -71,6 +72,7 @@ import { ConversationMap } from "./ConversationMap";
 import { ReadingPane } from "./ReadingPane";
 import { SettingsForm } from "./SettingsForm";
 import { Brand } from "./Brand";
+import { BranchStrip } from "./BranchStrip";
 import { Landing } from "./Landing";
 import { SetupPage } from "./SetupPage";
 
@@ -101,6 +103,7 @@ const env: Environment = {
 };
 const SAVE_DELAY_MS = 300;
 const USED_APP_KEY = "diagram-4-llm.used-app";
+const MAP_MINIMIZED_KEY = "diagram-4-llm.map-minimized";
 
 /**
  * Below this width the sidebar, the conversation and the map cannot all have
@@ -164,6 +167,23 @@ export function App({ openStore, settingsStorage }: AppProps) {
     storage: settingsStorage,
     onlySaveAfterUserInteractions: true,
   });
+  // Without the map the panels have other widths, kept under their own key
+  // so that each arrangement opens as the user left it.
+  const minimizedLayout = useDefaultLayout({
+    id: "diagram-4-llm.layout-minimized",
+    storage: settingsStorage,
+    onlySaveAfterUserInteractions: true,
+  });
+  // Only on a wide screen; a narrow one shows the map as a view of its own.
+  const [mapMinimized, setMapMinimized] = useState(
+    () => settingsStorage.getItem(MAP_MINIMIZED_KEY) !== null,
+  );
+  const [turnsInView, setTurnsInView] = useState<ReadonlySet<NodeId>>(
+    () => new Set(),
+  );
+  const minimizeMapRef = useRef<HTMLButtonElement>(null);
+  const restoreMapRef = useRef<HTMLButtonElement>(null);
+  const stripShown = mapMinimized && !narrow;
 
   useEffect(() => {
     // Results that arrive after the component is gone must not update it.
@@ -560,6 +580,25 @@ export function App({ openStore, settingsStorage }: AppProps) {
     setEditing(null);
   };
 
+  // The button that was pressed disappears, so focus moves to the one that
+  // takes its place.
+  const minimizeMap = (minimized: boolean) => {
+    if (minimized) settingsStorage.setItem(MAP_MINIMIZED_KEY, "1");
+    else settingsStorage.removeItem(MAP_MINIMIZED_KEY);
+    flushSync(() => {
+      setMapMinimized(minimized);
+    });
+    (minimized ? restoreMapRef : minimizeMapRef).current?.focus();
+  };
+
+  // The map is for finding a turn; the conversation shows it.
+  const revealTurn = (id: NodeId) => {
+    setReveal((previous) => ({
+      id,
+      request: (previous?.request ?? 0) + 1,
+    }));
+  };
+
   const exploreDemo = async () => {
     await openDemo();
     navigate("app");
@@ -728,6 +767,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
               onEdit={startEditing}
               onRegenerate={regenerate}
               reveal={reveal}
+              onTurnsInView={stripShown ? setTurnsInView : undefined}
             />
           </>
         )}
@@ -807,7 +847,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
       )}
     </main>
   );
-  const map =
+  const mapContent =
     graph === null ? (
       <section
         className="flex h-full flex-col items-center justify-center gap-2 bg-muted/40 p-6 text-center text-sm text-muted-foreground"
@@ -824,11 +864,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
           if (busy) return;
           setView("conversation");
           setAnchor(id);
-          // The map is for finding a turn; the conversation shows it.
-          setReveal((previous) => ({
-            id,
-            request: (previous?.request ?? 0) + 1,
-          }));
+          revealTurn(id);
         }}
         onToggleCollapsed={toggleCollapsed}
         onEdit={(turn) => {
@@ -841,6 +877,26 @@ export function App({ openStore, settingsStorage }: AppProps) {
         }}
       />
     );
+  const map = narrow ? (
+    mapContent
+  ) : (
+    <div className="relative h-full">
+      <Button
+        ref={minimizeMapRef}
+        variant="outline"
+        size="icon"
+        className="absolute top-2 right-2 z-10"
+        aria-label="Minimize the map"
+        title="Minimize the map"
+        onClick={() => {
+          minimizeMap(true);
+        }}
+      >
+        <PanelRightClose aria-hidden="true" />
+      </Button>
+      {mapContent}
+    </div>
+  );
 
   return (
     <div className="flex h-dvh flex-col">
@@ -921,29 +977,55 @@ export function App({ openStore, settingsStorage }: AppProps) {
           {view === "map" && <div className="min-h-0 flex-1">{map}</div>}
         </div>
       ) : (
-        <ResizablePanelGroup
-          orientation="horizontal"
-          className="min-h-0 flex-1"
-          defaultLayout={layout.defaultLayout}
-          onLayoutChanged={layout.onLayoutChanged}
-        >
-          <ResizablePanel
-            id="sidebar"
-            defaultSize="18"
-            minSize={180}
-            maxSize="30"
+        <div className="flex min-h-0 flex-1">
+          <ResizablePanelGroup
+            orientation="horizontal"
+            className="min-w-0 flex-1"
+            defaultLayout={
+              mapMinimized
+                ? minimizedLayout.defaultLayout
+                : layout.defaultLayout
+            }
+            onLayoutChanged={
+              mapMinimized
+                ? minimizedLayout.onLayoutChanged
+                : layout.onLayoutChanged
+            }
           >
-            {sidebar}
-          </ResizablePanel>
-          <ResizableHandle aria-label="Resize the sidebar" />
-          <ResizablePanel id="chat" minSize={360}>
-            {conversation}
-          </ResizablePanel>
-          <ResizableHandle aria-label="Resize the map" />
-          <ResizablePanel id="map" defaultSize="40" minSize={240}>
-            {map}
-          </ResizablePanel>
-        </ResizablePanelGroup>
+            <ResizablePanel
+              id="sidebar"
+              defaultSize="18"
+              minSize={180}
+              maxSize="30"
+            >
+              {sidebar}
+            </ResizablePanel>
+            <ResizableHandle aria-label="Resize the sidebar" />
+            <ResizablePanel id="chat" minSize={360}>
+              {conversation}
+            </ResizablePanel>
+            {!mapMinimized && (
+              <>
+                <ResizableHandle aria-label="Resize the map" />
+                <ResizablePanel id="map" defaultSize="40" minSize={240}>
+                  {map}
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
+          {mapMinimized && (
+            <BranchStrip
+              graph={graph}
+              branch={branch}
+              inView={turnsInView}
+              onReveal={revealTurn}
+              onRestore={() => {
+                minimizeMap(false);
+              }}
+              restoreRef={restoreMapRef}
+            />
+          )}
+        </div>
       )}
     </div>
   );
