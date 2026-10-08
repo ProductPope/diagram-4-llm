@@ -52,6 +52,8 @@ model server.
 - Agentic sessions (tool use, code execution). Importing Claude Code sessions
   for viewing is a later possibility (phase 3), but running them is not.
 - Automatically restructuring conversations without user action.
+- Integrations that need a project-operated server, such as a remote MCP
+  connector for claude.ai. Principle 4 rules them out.
 
 ## 5. Core concepts
 
@@ -160,20 +162,30 @@ consecutive weeks and records the friction points in issues.
 - Merge workflows built from the two primitives above.
 - Token budget warnings against each model's context window, with suggested
   actions (summarise, drop a reference) instead of silent truncation.
+- Suggested branches: under an answer, two or three follow-up directions
+  proposed by a model the user picks (off by default, like node titles).
+  Choosing one forks the conversation; nothing is sent without user action.
+  Sending several at once is allowed only after the combined cost is shown.
 
 **Exit:** each of the four context modes in section 5 can be completed
 through keyboard and mouse in under 10 seconds by a user who knows the app.
 
 ### Phase 3: Reach
 
-Candidates, prioritised after phase 2 based on observed use:
+Candidates, in the order currently planned, re-prioritised after phase 2
+based on observed use. Each one runs on the user's device:
 
-- Import of Claude.ai data exports and Claude Code session logs (JSONL) into
-  read-only graphs.
-- Topic view: model-detected topics over a linear imported conversation.
-- MCP server exposing the graph, so that agents can read branches and
-  summaries as context.
-- Desktop packaging (Tauri) for OS keychain storage and no CORS setup.
+1. Map of Claude Code sessions: import of the session logs (JSONL) that
+   Claude Code keeps on disk into read-only graphs, with no manual export.
+2. Local MCP server exposing the graph, run on the user's machine for
+   Claude Desktop or Claude Code: agents read branches and summaries as
+   context, and can build a map of the current session.
+3. A pane inside Claude Code built as a mod on top of 1 and 2. The mod API
+   has not been evaluated yet.
+4. Import of Claude.ai data exports into read-only graphs.
+5. Topic view: model-detected topics over a linear imported conversation.
+6. Desktop packaging (Tauri) for OS keychain storage, no CORS setup and
+   reading session logs without the user picking files.
 
 ## 7. Success criteria
 
