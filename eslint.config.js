@@ -9,6 +9,11 @@ export default defineConfig(
     "**/coverage/",
     "**/test-results/",
     "**/playwright-report/",
+    // The Claude Code mod is typed against declarations that Claude Code
+    // writes when it loads the mod, so the repository's type-aware lint
+    // cannot resolve them. `pnpm --filter @diagram-4-llm/mcp test:plugin`
+    // checks it with Claude Code's own validator and test runner instead.
+    "packages/mcp/plugin/",
   ]),
   js.configs.recommended,
   {

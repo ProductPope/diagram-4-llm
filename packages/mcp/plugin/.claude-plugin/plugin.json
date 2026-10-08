@@ -1,0 +1,14 @@
+{
+  "name": "diagram-4-llm",
+  "version": "0.1.0",
+  "description": "Shows the current Claude Code session as a map in a pane, and gives Claude read-only tools over sessions.",
+  "author": { "name": "ProductPope" },
+  "repository": "https://github.com/ProductPope/diagram-4-llm",
+  "license": "MIT",
+  "mcpServers": {
+    "diagram-4-llm": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/../dist/main.js"]
+    }
+  }
+}

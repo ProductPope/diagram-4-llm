@@ -202,8 +202,7 @@ based on observed use. Each one runs on the user's device:
 2. Local MCP server exposing the graph, run on the user's machine for
    Claude Desktop or Claude Code: agents read branches and summaries as
    context, and can build a map of the current session.
-3. A pane inside Claude Code built as a mod on top of 1 and 2. The mod API
-   has not been evaluated yet.
+3. A pane inside Claude Code built as a mod on top of 1 and 2.
 4. Import of Claude.ai data exports into read-only graphs.
 5. Topic view: model-detected topics over a linear imported conversation.
 6. Desktop packaging (Tauri) for OS keychain storage, no CORS setup and
@@ -220,6 +219,10 @@ based on observed use. Each one runs on the user's device:
       and Claude Desktop over exported conversations (maps, branches as
       the model saw them, summaries) and Claude Code sessions (list, map,
       a branch in full) ([ADR 0010](adr/0010-local-mcp-server.md))
+- [x] Session map pane in Claude Code (`packages/mcp/plugin`): a mod whose
+      `/session-map` command opens a pane with the current session's map,
+      read from the MCP server and read again after each answer
+      ([ADR 0011](adr/0011-session-map-pane.md))
 
 ## 7. Success criteria
 
