@@ -1,4 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
+import type Anthropic from "@anthropic-ai/sdk";
+import type * as AnthropicSdk from "@anthropic-ai/sdk";
 import type {
   ProviderErrorInfo,
   Result,
@@ -24,10 +25,21 @@ export interface AnthropicConfig {
 export function createAnthropicAdapter(
   config: AnthropicConfig,
 ): ProviderAdapter {
-  const client = createClient(config);
   return {
     id: "anthropic",
-    stream: (request, signal) => streamMessage(client, request, signal),
+    stream: async function* (request, signal) {
+      const sdk = await loadSdk();
+      if (!sdk.ok) {
+        yield { type: "error", error: sdk.error };
+        return;
+      }
+      yield* streamMessage(
+        sdk.value,
+        createClient(sdk.value, config),
+        request,
+        signal,
+      );
+    },
   };
 }
 
@@ -39,10 +51,12 @@ export async function listAnthropicModels(
   config: AnthropicConfig,
   signal: AbortSignal,
 ): Promise<Result<string[], ProviderErrorInfo>> {
+  const sdk = await loadSdk();
+  if (!sdk.ok) return sdk;
   const ids: string[] = [];
   try {
     // The page iterator requests further pages as it goes.
-    for await (const model of createClient(config).models.list(
+    for await (const model of createClient(sdk.value, config).models.list(
       { limit: 100 },
       { signal },
     )) {
@@ -50,12 +64,37 @@ export async function listAnthropicModels(
     }
     return { ok: true, value: ids };
   } catch (error) {
-    return { ok: false, error: toProviderError(error, signal) };
+    return { ok: false, error: toProviderError(sdk.value, error, signal) };
   }
 }
 
-function createClient(config: AnthropicConfig): Anthropic {
-  return new Anthropic({
+/**
+ * The SDK is about a sixth of the app's code and is needed only once the
+ * user talks to Anthropic, so it is loaded on first use, not with the page.
+ */
+async function loadSdk(): Promise<
+  Result<typeof AnthropicSdk, ProviderErrorInfo>
+> {
+  try {
+    return { ok: true, value: await import("@anthropic-ai/sdk") };
+  } catch (error) {
+    return {
+      ok: false,
+      error: {
+        code: "network",
+        message: `The Anthropic client could not be loaded: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      },
+    };
+  }
+}
+
+function createClient(
+  sdk: typeof AnthropicSdk,
+  config: AnthropicConfig,
+): Anthropic {
+  return new sdk.default({
     apiKey: config.apiKey,
     // ADR 0002: the app runs entirely in the browser with the user's own
     // key. The README states the risk of keeping a key in the browser.
@@ -65,6 +104,7 @@ function createClient(config: AnthropicConfig): Anthropic {
 }
 
 async function* streamMessage(
+  sdk: typeof AnthropicSdk,
   client: Anthropic,
   request: ChatRequest,
   signal: AbortSignal,
@@ -105,20 +145,21 @@ async function* streamMessage(
     if (signal.aborted) {
       yield { type: "aborted" };
     } else {
-      yield { type: "error", error: toProviderError(error, signal) };
+      yield { type: "error", error: toProviderError(sdk, error, signal) };
     }
   }
 }
 
 function toProviderError(
+  sdk: typeof AnthropicSdk,
   error: unknown,
   signal: AbortSignal,
 ): ProviderErrorInfo {
   if (signal.aborted)
     return { code: "aborted", message: "The request was cancelled." };
-  if (error instanceof Anthropic.APIConnectionError)
+  if (error instanceof sdk.APIConnectionError)
     return { code: "network", message: error.message };
-  if (error instanceof Anthropic.APIError)
+  if (error instanceof sdk.APIError)
     return {
       code: error.type ?? `http-${String(error.status ?? "unknown")}`,
       message: error.message,
