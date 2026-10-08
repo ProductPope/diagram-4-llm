@@ -112,7 +112,8 @@ to keep it that way.
 
 The desktop app keeps the API key in the operating system's keychain
 (Keychain on macOS, Credential Manager on Windows, the Secret Service on
-Linux) instead of the page's storage. It needs Rust and the
+Linux) instead of the page's storage, and reaches local model servers such
+as Ollama and LM Studio without any CORS setup. It needs Rust and the
 [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your
 system. Builds are not signed.
 

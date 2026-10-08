@@ -33,7 +33,7 @@ it("welcomes a new visitor before showing the app", async () => {
     <App
       openStore={() => openConversationStore(new IDBFactory())}
       settingsStorage={localStorage}
-      keyStore={null}
+      desktop={null}
     />,
   );
 
@@ -60,7 +60,7 @@ it("starts the app with no conversations and asks for a provider before sending"
     <App
       openStore={() => openConversationStore(new IDBFactory())}
       settingsStorage={localStorage}
-      keyStore={null}
+      desktop={null}
     />,
   );
 

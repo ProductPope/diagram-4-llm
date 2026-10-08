@@ -113,12 +113,30 @@ export async function saveSettings(
   return ok(undefined);
 }
 
-export function createAdapter(settings: ProviderSettings): ProviderAdapter {
+/**
+ * What the desktop app adds to the web app (ADR 0014, ADR 0015). The
+ * browser version has neither.
+ */
+export interface Desktop {
+  readonly keyStore: KeyStore;
+  /**
+   * Makes requests from the desktop app rather than the page, so that
+   * OpenAI-compatible servers need no CORS setup. Anthropic allows the page
+   * to call it directly, so its requests stay in the page.
+   */
+  readonly serverFetch: typeof fetch;
+}
+
+export function createAdapter(
+  settings: ProviderSettings,
+  serverFetch: typeof fetch | null = null,
+): ProviderAdapter {
   return settings.adapter === "anthropic"
     ? createAnthropicAdapter({ apiKey: settings.apiKey })
     : createOpenAICompatibleAdapter({
         baseUrl: settings.baseUrl,
         ...(settings.apiKey === "" ? {} : { apiKey: settings.apiKey }),
+        ...(serverFetch === null ? {} : { fetch: serverFetch }),
       });
 }
 
@@ -135,6 +153,7 @@ export type Connection =
 export function listModels(
   connection: Connection,
   signal: AbortSignal,
+  serverFetch: typeof fetch | null = null,
 ): Promise<Result<string[], ProviderErrorInfo>> {
   return connection.adapter === "anthropic"
     ? listAnthropicModels({ apiKey: connection.apiKey }, signal)
@@ -142,6 +161,7 @@ export function listModels(
         {
           baseUrl: connection.baseUrl,
           ...(connection.apiKey === "" ? {} : { apiKey: connection.apiKey }),
+          ...(serverFetch === null ? {} : { fetch: serverFetch }),
         },
         signal,
       );

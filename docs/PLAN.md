@@ -236,8 +236,11 @@ based on observed use. Each one runs on the user's device:
       ([ADR 0013](adr/0013-claude-ai-export-map.md))
 - [x] Desktop app, first part (`apps/desktop`): the web app in a Tauri
       window, with the API key in the operating system's keychain
-      ([ADR 0014](adr/0014-desktop-app-keychain.md)). No CORS setup and
-      reading session logs without picking files are still to come.
+      ([ADR 0014](adr/0014-desktop-app-keychain.md)). Reading session
+      logs without picking files is still to come.
+- [x] Desktop app, local servers without CORS setup: requests to
+      OpenAI-compatible servers are made by the app, without an Origin
+      ([ADR 0015](adr/0015-desktop-server-requests.md))
 
 ## 7. Success criteria
 
@@ -282,7 +285,7 @@ reveals a case they do not cover.
 | Scope creep                                                    | High   | Non-goals in section 4. Phase exit criteria gate new work.                                                                                                                                                                      |
 | API keys stored in the browser can be read by injected scripts | High   | No third-party scripts, strict Content Security Policy, sanitised Markdown rendering with no raw HTML, desktop keychain in phase 3. Documented honestly in the README.                                                          |
 | Canvas becomes an unreadable hairball beyond about 100 nodes   | Medium | Collapsible subtrees, node titles instead of content, linear reading pane, performance budget tested with generated graphs of 1,000 nodes.                                                                                      |
-| Browser cannot reach local model servers (CORS)                | Medium | Setup guide per server (for example `OLLAMA_ORIGINS` for Ollama). Desktop build removes the issue.                                                                                                                              |
+| Browser cannot reach local model servers (CORS)                | Medium | Setup guide per server (for example `OLLAMA_ORIGINS` for Ollama). The desktop app needs none (ADR 0015).                                                                                                                        |
 | Token counts in the browser are estimates                      | Low    | Label them as estimates. Record actual usage reported by the provider after each answer.                                                                                                                                        |
 | Summaries silently lose important details                      | Medium | Summaries are visible, editable nodes, never applied automatically.                                                                                                                                                             |
 

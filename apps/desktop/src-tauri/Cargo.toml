@@ -18,6 +18,9 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 keyring = "4"
+# `unsafe-headers` lets the page drop the Origin header, so that local
+# servers treat requests like any other local client (ADR 0015).
+tauri-plugin-http = { version = "2", features = ["unsafe-headers"] }
 
 [profile.release]
 codegen-units = 1

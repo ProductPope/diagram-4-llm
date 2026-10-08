@@ -59,7 +59,7 @@ import {
   createAdapter,
   loadSettings,
   saveSettings,
-  type KeyStore,
+  type Desktop,
   type ProviderSettings,
 } from "../app/settings";
 import { defaultRoute } from "../app/route";
@@ -101,8 +101,8 @@ import { SetupPage } from "./SetupPage";
 export interface AppProps {
   readonly openStore: () => Promise<StorageResult<ConversationStore>>;
   readonly settingsStorage: Storage;
-  /** Where the API key is kept apart from the settings, if anywhere. */
-  readonly keyStore: KeyStore | null;
+  /** What the desktop app adds, or null in a browser. */
+  readonly desktop: Desktop | null;
 }
 
 type StorageState =
@@ -138,7 +138,9 @@ const NARROW_VIEWS: readonly { readonly id: View; readonly label: string }[] = [
   { id: "map", label: "Map" },
 ];
 
-export function App({ openStore, settingsStorage, keyStore }: AppProps) {
+export function App({ openStore, settingsStorage, desktop }: AppProps) {
+  const keyStore = desktop?.keyStore ?? null;
+  const serverFetch = desktop?.serverFetch ?? null;
   const [storage, setStorage] = useState<StorageState>({ status: "loading" });
   const [conversations, setConversations] = useState<
     readonly ConversationSummary[]
@@ -344,7 +346,7 @@ export function App({ openStore, settingsStorage, keyStore }: AppProps) {
             : null;
 
   const generation = (configured: ProviderSettings): GenerationSettings => ({
-    adapter: createAdapter(configured),
+    adapter: createAdapter(configured, serverFetch),
     ...(configured.adapter === "openai-compatible"
       ? { baseUrl: configured.baseUrl }
       : {}),
@@ -900,7 +902,7 @@ export function App({ openStore, settingsStorage, keyStore }: AppProps) {
   if (page === "session") {
     return (
       <SessionPage
-        topicModel={sessionTopicModel(settings)}
+        topicModel={sessionTopicModel(settings, serverFetch)}
         onBack={() => {
           navigate("app");
         }}
@@ -920,6 +922,7 @@ export function App({ openStore, settingsStorage, keyStore }: AppProps) {
     return (
       <SetupPage
         origin={window.location.origin}
+        desktop={desktop}
         systemPrompt={settings?.systemPrompt ?? ""}
         onComplete={(next) => void saveSetup(next)}
         onBack={() => {
@@ -1034,6 +1037,7 @@ export function App({ openStore, settingsStorage, keyStore }: AppProps) {
         {showSettings ? (
           <SettingsForm
             initial={settings}
+            keyInKeychain={keyStore !== null}
             onSave={(next) => {
               void applySettings(next);
               setShowSettings(false);
@@ -1500,11 +1504,12 @@ function saveStateText(
  */
 function sessionTopicModel(
   settings: ProviderSettings | null,
+  serverFetch: typeof fetch | null,
 ): TopicModel | null {
   const model = settings?.titleModel ?? settings?.models[0];
   if (settings === null || model === undefined) return null;
   return {
-    adapter: createAdapter(settings),
+    adapter: createAdapter(settings, serverFetch),
     model,
     contextWindow: settings.contextWindows?.[model],
   };

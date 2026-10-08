@@ -24,4 +24,5 @@ for _ in $(seq 50); do
   sleep 0.1
 done
 
-node --test keychain.test.ts
+# The tests share one driver, so they run one at a time.
+node --test --test-concurrency=1 keychain.test.ts local-server.test.ts

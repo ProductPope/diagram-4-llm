@@ -1,7 +1,8 @@
 //! The desktop app: the web app's build in a Tauri window. The provider's
 //! API key is kept in the operating system's credential store rather than in
 //! the webview's storage, where any script running in the page could read it
-//! (ADR 0014).
+//! (ADR 0014). Requests to OpenAI-compatible servers go through the HTTP
+//! plugin, so that local servers need no CORS setup (ADR 0015).
 
 use keyring::Entry;
 
@@ -62,6 +63,7 @@ async fn run_blocking<T: Send + 'static>(
 
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_http::init())
         .invoke_handler(tauri::generate_handler![load_api_key, save_api_key])
         .run(tauri::generate_context!())
         .expect("the desktop app could not start");

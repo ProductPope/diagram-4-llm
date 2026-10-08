@@ -3,8 +3,10 @@
   "compilerOptions": {
     "types": ["node"],
     "noEmit": true,
-    // Node runs the tests by stripping their types.
-    "erasableSyntaxOnly": true
+    // Node runs the tests by stripping their types, so imports name the
+    // .ts files themselves.
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true
   },
   "include": ["e2e"]
 }

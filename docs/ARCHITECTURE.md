@@ -239,7 +239,9 @@ Browser-specific constraints:
   documented to the user, not hidden.
 - Local servers must allow the app's origin through CORS. For example,
   Ollama reads the allowed origins from the `OLLAMA_ORIGINS` environment
-  variable. The README will include setup steps for each server.
+  variable. The README will include setup steps for each server. The
+  desktop app makes these requests itself, without an Origin, so they need
+  no setup there ([ADR 0015](adr/0015-desktop-server-requests.md)).
 
 ## 5. Persistence and data format
 

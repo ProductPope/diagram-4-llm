@@ -19,6 +19,7 @@ import {
   listModels,
   parseModelList,
   type Connection,
+  type Desktop,
   type ProviderSettings,
 } from "../app/settings";
 
@@ -70,6 +71,11 @@ type Test =
 interface Props {
   /** The app's origin, which local servers must be told to allow. */
   readonly origin: string;
+  /**
+   * In the desktop app servers need no CORS setup and the key is kept in the
+   * system keychain.
+   */
+  readonly desktop: Desktop | null;
   /** Kept from the current settings; setup does not ask for it. */
   readonly systemPrompt: string;
   readonly onComplete: (settings: ProviderSettings) => void;
@@ -84,6 +90,7 @@ interface Props {
  */
 export function SetupWizard({
   origin,
+  desktop,
   systemPrompt,
   onComplete,
   onBack,
@@ -135,7 +142,11 @@ export function SetupWizard({
     const controller = new AbortController();
     pending.current = controller;
     setTest({ status: "testing" });
-    const listed = await listModels(connection(), controller.signal);
+    const listed = await listModels(
+      connection(),
+      controller.signal,
+      desktop?.serverFetch ?? null,
+    );
     if (controller.signal.aborted) return;
     if (!listed.ok) {
       setTest({ status: "failed", error: listed.error });
@@ -302,13 +313,18 @@ export function SetupWizard({
                 >
                   Claude Console, under API keys
                 </a>
-                . It is stored only in this browser and sent only to Anthropic.
+                .{" "}
+                {desktop === null
+                  ? "It is stored only in this browser and sent only to Anthropic."
+                  : "It is stored in your system's keychain and sent only to Anthropic."}
               </p>
             </div>
           ) : (
             <>
-              {choice === "ollama" && <OllamaSteps origin={origin} />}
-              {choice === "lm-studio" && (
+              {desktop === null && choice === "ollama" && (
+                <OllamaSteps origin={origin} />
+              )}
+              {desktop === null && choice === "lm-studio" && (
                 <p className="text-sm text-muted-foreground">
                   In LM Studio, start the local server and switch on{" "}
                   <strong className="text-foreground">Enable CORS</strong> in
@@ -346,7 +362,7 @@ export function SetupWizard({
               )}
             </>
           )}
-          <TestResult test={test} choice={choice} />
+          <TestResult test={test} choice={choice} desktop={desktop !== null} />
         </WizardCard>
       );
 
@@ -559,9 +575,12 @@ function OllamaSteps({ origin }: { readonly origin: string }) {
 function TestResult({
   test,
   choice,
+  desktop,
 }: {
   readonly test: Test;
   readonly choice: Choice;
+  /** The desktop app needs no CORS setup, so failures have other causes. */
+  readonly desktop: boolean;
 }) {
   switch (test.status) {
     case "idle":
@@ -585,7 +604,7 @@ function TestResult({
           <CircleAlert aria-hidden="true" />
           <AlertTitle>The connection did not work</AlertTitle>
           <AlertDescription>
-            <p>{failureHint(test.error, choice)}</p>
+            <p>{failureHint(test.error, choice, desktop)}</p>
             <p className="text-xs">Details: {test.error.message}</p>
           </AlertDescription>
         </Alert>
@@ -593,13 +612,19 @@ function TestResult({
   }
 }
 
-function failureHint(error: ProviderErrorInfo, choice: Choice): string {
+function failureHint(
+  error: ProviderErrorInfo,
+  choice: Choice,
+  desktop: boolean,
+): string {
   if (choice === "anthropic") {
     return error.code === "authentication_error"
       ? "Anthropic did not accept this key. Check that it was copied completely."
       : "Anthropic could not be reached. Check your internet connection and try again.";
   }
   if (error.code === "network") {
+    if (desktop)
+      return "The server could not be reached. Check the address and that the server is running.";
     return choice === "other"
       ? "The server could not be reached. Check the address, and that the server allows requests from this page (CORS)."
       : "The server could not be reached. Check that it is running and that it allows this page, as described above.";
