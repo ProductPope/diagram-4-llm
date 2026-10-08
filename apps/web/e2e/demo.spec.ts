@@ -11,31 +11,35 @@ test("opens the demo without a provider, and only once", async ({ page }) => {
   const map = page.getByRole("region", { name: "Conversation map" });
   const conversations = page.getByRole("navigation", { name: "Conversations" });
   const demoEntry = conversations.getByRole("button", {
-    name: "Demo: which database for a small app?",
+    name: "Demo: planning a feature launch",
     exact: true,
   });
 
   await page.getByRole("button", { name: "Open the demo" }).click();
-  await expect(transcript.getByText("How would I back it up?")).toBeVisible();
+  await expect(
+    transcript.getByText("Now write the in-app announcement for everyone else"),
+  ).toBeVisible();
   // Answers are labelled as written by hand, not as a model's output.
   await expect(
     transcript.getByText("example (hand-written)").first(),
   ).toBeVisible();
   // The map shows every turn, with titles on the answers.
-  await expect(map.locator(".map-node")).toHaveCount(9);
+  await expect(map.locator(".map-node")).toHaveCount(17);
   await expect(
-    map.locator(".map-node-assistant", { hasText: "Backing up SQLite" }),
+    map.locator(".map-node-assistant", {
+      hasText: "Announcement for everyone",
+    }),
   ).toBeVisible();
 
-  // Choosing the other topic on the map shows it in the reading pane: the
-  // question is the first of two at the fork, and its answer is the second
+  // Choosing another topic on the map shows it in the reading pane: the
+  // question is the first of three at the fork, and its answer is the second
   // of two versions.
-  await map
-    .locator(".map-node-user", { hasText: "Go deeper on PostgreSQL" })
-    .click();
-  await expect(transcript.getByText("1 / 2")).toBeVisible();
+  await map.locator(".map-node-user", { hasText: "Start with scope" }).click();
+  await expect(transcript.getByText("1 / 3")).toBeVisible();
   await expect(transcript.getByText("2 / 2")).toBeVisible();
-  await expect(transcript.getByText("How would I back it up?")).toHaveCount(0);
+  await expect(
+    transcript.getByText("Now write the in-app announcement for everyone else"),
+  ).toHaveCount(0);
 
   // Opening it again does not add a second copy, and it survives a reload.
   await page.getByRole("button", { name: "Open the demo" }).click();
@@ -43,7 +47,7 @@ test("opens the demo without a provider, and only once", async ({ page }) => {
   await page.reload();
   await expect(demoEntry).toHaveCount(1);
   await demoEntry.click();
-  await expect(map.locator(".map-node")).toHaveCount(9);
+  await expect(map.locator(".map-node")).toHaveCount(17);
 
   expect(consoleErrors).toEqual([]);
 });

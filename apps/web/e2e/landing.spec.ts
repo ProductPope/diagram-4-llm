@@ -144,7 +144,7 @@ test("welcomes a new visitor with a conversation they move forward", async ({
   await expect(
     page
       .getByRole("list", { name: "Selected branch" })
-      .getByText("How would I back it up?"),
+      .getByText("Now write the in-app announcement for everyone else"),
   ).toBeVisible();
 
   // Having used the app, the bare address opens it directly.
