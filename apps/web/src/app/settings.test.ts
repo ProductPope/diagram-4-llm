@@ -54,6 +54,36 @@ describe("provider settings", () => {
     expect(loadSettings(storage)).toEqual(settings);
   });
 
+  it("round-trips context windows of models", () => {
+    const storage = memoryStorage();
+    const settings: ProviderSettings = {
+      adapter: "openai-compatible",
+      baseUrl: "http://localhost:11434/v1",
+      apiKey: "",
+      models: ["llama3", "qwen3"],
+      contextWindows: { llama3: 8192 },
+      systemPrompt: "",
+    };
+    saveSettings(settings, storage);
+    expect(loadSettings(storage)).toEqual(settings);
+  });
+
+  it("treats a context window that is not a positive whole number as not configured", () => {
+    const storage = memoryStorage();
+    storage.setItem(
+      "diagram-4-llm.provider-settings",
+      JSON.stringify({
+        adapter: "openai-compatible",
+        baseUrl: "http://localhost:11434/v1",
+        apiKey: "",
+        models: ["llama3"],
+        contextWindows: { llama3: 0 },
+        systemPrompt: "",
+      }),
+    );
+    expect(loadSettings(storage)).toBeNull();
+  });
+
   it("reads settings saved with a single model as a list of one", () => {
     const storage = memoryStorage();
     storage.setItem(

@@ -343,6 +343,14 @@ Browser-specific constraints:
   takes focus when editing a message starts.
 - **Context inspector:** the assembled messages, their sources and the
   token estimate, available before sending and stored with each answer.
+- **Context budget** (`apps/web/src/app/budget.ts`,
+  `apps/web/src/ui/BudgetNotice.tsx`): each model can be given its context
+  window in the settings; providers do not report it in a form common to
+  both APIs. From 80% of the window the composer warns, and above it
+  sending is blocked, with the estimate, the window and suggested
+  actions: continue from a summary of the branch in a new first message,
+  or remove one of the largest attachments. The comparison uses the
+  input estimate only. Without a window there is no warning.
 - **Pages:** the URL fragment selects the page (`#/welcome`, `#/setup`,
   `#/app`), so a static host serves every page from one file. A first
   visit without a fragment shows the welcome page; once the app has been

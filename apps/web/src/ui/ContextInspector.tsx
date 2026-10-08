@@ -1,28 +1,26 @@
 import { Badge } from "#components/ui/badge";
 import {
-  assembleContext,
   describeGraphError,
-  type ContextDraft,
-  type ConversationGraph,
+  type AssembledContext,
+  type GraphError,
+  type Result,
 } from "@diagram-4-llm/core";
 import { ChevronRight } from "lucide-react";
 
 interface Props {
-  readonly graph: ConversationGraph;
-  readonly draft: ContextDraft;
-  readonly systemPrompt: string | null;
+  /** The context of the draft, or null while the draft is empty. */
+  readonly assembled: Result<AssembledContext, GraphError> | null;
 }
 
 /** Shows exactly what would be sent to the model if the draft were sent now. */
-export function ContextInspector({ graph, draft, systemPrompt }: Props) {
-  if (draft.content.trim() === "") {
+export function ContextInspector({ assembled }: Props) {
+  if (assembled === null) {
     return (
       <p className="text-xs text-muted-foreground">
         The exact context appears here once you type a message.
       </p>
     );
   }
-  const assembled = assembleContext(graph, draft, { systemPrompt });
   if (!assembled.ok) {
     return (
       <p className="text-xs text-destructive">

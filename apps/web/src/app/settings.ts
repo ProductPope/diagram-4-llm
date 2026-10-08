@@ -15,6 +15,14 @@ import type { ProviderAdapter } from "../providers/types";
 const modelList = z.array(z.string().min(1)).min(1);
 /** Titles map nodes when set; without it nodes show the start of a message. */
 const titleModel = z.exactOptional(z.string().min(1));
+/**
+ * Context window in tokens of the models the user gave one for. Providers
+ * do not report it in a form common to both APIs, so the user enters it;
+ * without it, the app cannot warn before a context is too large.
+ */
+const contextWindows = z.exactOptional(
+  z.record(z.string().min(1), z.number().int().positive()),
+);
 
 const settingsSchema = z.discriminatedUnion("adapter", [
   z.strictObject({
@@ -22,6 +30,7 @@ const settingsSchema = z.discriminatedUnion("adapter", [
     apiKey: z.string().min(1),
     models: modelList,
     titleModel,
+    contextWindows,
     systemPrompt: z.string(),
   }),
   z.strictObject({
@@ -30,6 +39,7 @@ const settingsSchema = z.discriminatedUnion("adapter", [
     apiKey: z.string(),
     models: modelList,
     titleModel,
+    contextWindows,
     systemPrompt: z.string(),
   }),
 ]);

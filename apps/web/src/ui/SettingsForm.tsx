@@ -39,17 +39,34 @@ export function SettingsForm({
   const [apiKey, setApiKey] = useState(initial?.apiKey ?? "");
   const [models, setModels] = useState(initial?.models.join("\n") ?? "");
   const [titleModel, setTitleModel] = useState(initial?.titleModel ?? "");
+  // Kept for every model typed so far, so a window survives a model being
+  // removed from the list and added back while the form is open.
+  const [windows, setWindows] = useState<Readonly<Record<string, string>>>(() =>
+    Object.fromEntries(
+      Object.entries(initial?.contextWindows ?? {}).map(([model, size]) => [
+        model,
+        String(size),
+      ]),
+    ),
+  );
+  const modelList = parseModelList(models);
   const [systemPrompt, setSystemPrompt] = useState(initial?.systemPrompt ?? "");
 
   const onSubmit = (event: SubmitEvent) => {
     event.preventDefault();
-    const list = parseModelList(models);
     // The textarea is required, but it can still hold only whitespace.
-    if (list.length === 0) return;
+    if (modelList.length === 0) return;
+    const contextWindows = Object.fromEntries(
+      modelList.flatMap((model) => {
+        const size = Number(windows[model] ?? "");
+        return Number.isInteger(size) && size > 0 ? [[model, size]] : [];
+      }),
+    );
     const common = {
       apiKey,
-      models: list,
+      models: modelList,
       ...(titleModel.trim() === "" ? {} : { titleModel: titleModel.trim() }),
+      ...(Object.keys(contextWindows).length === 0 ? {} : { contextWindows }),
       systemPrompt,
     };
     onSave(
@@ -141,6 +158,44 @@ export function SettingsForm({
               }}
             />
           </div>
+          {modelList.length > 0 && (
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-2 text-sm font-medium">
+                Context windows in tokens (optional)
+              </legend>
+              {modelList.map((model, index) => (
+                <div key={model} className="flex items-center gap-2">
+                  <Label
+                    htmlFor={`settings-window-${String(index)}`}
+                    className="min-w-0 flex-1 truncate font-mono font-normal"
+                  >
+                    {model}
+                  </Label>
+                  <Input
+                    id={`settings-window-${String(index)}`}
+                    className="w-32"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    step={1}
+                    value={windows[model] ?? ""}
+                    onChange={(event) => {
+                      setWindows((previous) => ({
+                        ...previous,
+                        [model]: event.target.value,
+                      }));
+                    }}
+                  />
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground">
+                The most a model can read at once, from its documentation or
+                server settings. With it, the app warns before a message's
+                context gets too large and blocks sending when it is larger.
+                Nothing is ever cut off.
+              </p>
+            </fieldset>
+          )}
           <div className="flex flex-col gap-2">
             <Label htmlFor="settings-title-model">
               Model for node titles (optional)

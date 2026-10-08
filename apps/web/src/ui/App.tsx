@@ -1,5 +1,6 @@
 import {
   addSummary,
+  assembleContext,
   createConversation,
   describeGraphError,
   isUsable,
@@ -38,6 +39,12 @@ import { flushSync } from "react-dom";
 import { useDefaultLayout } from "react-resizable-panels";
 
 import { visibleBranch } from "../app/branch";
+import {
+  contextBudget,
+  referencesBySize,
+  type ContextBudget,
+} from "../app/budget";
+import { labelOf } from "../app/label";
 import { referencesOnPath, toggleReference } from "../app/references";
 import { currentSummaries } from "../app/summaries";
 import { DEMO_CONVERSATION_ID, demoConversation } from "../app/demo";
@@ -73,6 +80,7 @@ import {
   type StorageResult,
 } from "../storage/conversation-store";
 import { AttachedReferences } from "./AttachedReferences";
+import { BudgetNotice } from "./BudgetNotice";
 import { Composer } from "./Composer";
 import { ContextInspector } from "./ContextInspector";
 import { ConversationList } from "./ConversationList";
@@ -282,14 +290,6 @@ export function App({ openStore, settingsStorage }: AppProps) {
     graph === null || parentId === undefined
       ? new Set<NodeId>()
       : referencesOnPath(graph, parentId, refs);
-  const blockedReason =
-    settings === null
-      ? "Configure a provider in Settings before sending."
-      : parentId === undefined
-        ? "The last answer is unfinished or failed. Regenerate it or edit your message to continue."
-        : refsOnPath.size > 0
-          ? "An attached turn is already in this branch. Remove it to send."
-          : null;
 
   // The model for the next answer: the user's choice if it is still
   // configured, otherwise the model that answered last on this branch, so a
@@ -304,6 +304,37 @@ export function App({ openStore, settingsStorage }: AppProps) {
         candidate !== undefined &&
         configuredModels.includes(candidate),
     ) ?? configuredModels[0];
+
+  const systemPrompt =
+    settings === null || settings.systemPrompt === ""
+      ? null
+      : settings.systemPrompt;
+  const assembled =
+    graph === null || parentId === undefined || draft.trim() === ""
+      ? null
+      : assembleContext(
+          graph,
+          { parentId, refs, content: draft },
+          { systemPrompt },
+        );
+  const budget: ContextBudget =
+    assembled?.ok === true
+      ? contextBudget(
+          assembled.value.manifest.estimatedInputTokens,
+          model === undefined ? undefined : settings?.contextWindows?.[model],
+        )
+      : { status: "unknown" };
+
+  const blockedReason =
+    settings === null
+      ? "Configure a provider in Settings before sending."
+      : parentId === undefined
+        ? "The last answer is unfinished or failed. Regenerate it or edit your message to continue."
+        : refsOnPath.size > 0
+          ? "An attached turn is already in this branch. Remove it to send."
+          : budget.status === "over"
+            ? "The context is larger than the model's context window. Make it smaller to send."
+            : null;
 
   const generation = (configured: ProviderSettings): GenerationSettings => ({
     adapter: createAdapter(configured),
@@ -536,11 +567,10 @@ export function App({ openStore, settingsStorage }: AppProps) {
 
   // A first message continues nothing, so the model sees only the message
   // and what is attached to it, such as summaries of the branches it
-  // brings together. Attachments made before are kept for that reason.
+  // brings together. The text and attachments written so far are kept.
   const startRoot = () => {
     setView("conversation");
-    setEditing({ kind: "root", parentId: null, content: "" });
-    setDraft("");
+    setEditing({ kind: "root", parentId: null, content: draft });
     setComposerKey((key) => key + 1);
   };
 
@@ -944,16 +974,34 @@ export function App({ openStore, settingsStorage }: AppProps) {
               }}
             />
           )}
-          {graph !== null && parentId !== undefined && (
-            <ContextInspector
-              graph={graph}
-              draft={{ parentId, refs, content: draft }}
-              systemPrompt={
-                settings === null || settings.systemPrompt === ""
-                  ? null
-                  : settings.systemPrompt
+          {graph !== null && model !== undefined && (
+            <BudgetNotice
+              budget={budget}
+              model={model}
+              references={referencesBySize(graph, refs).map((reference) => {
+                const node = graph.nodes.get(reference.id);
+                return {
+                  ...reference,
+                  label:
+                    graph.meta.get(reference.id)?.title ??
+                    (node === undefined ? reference.id : labelOf(node)),
+                };
+              })}
+              onRemoveReference={(id) => {
+                setRefs((previous) => previous.filter((ref) => ref !== id));
+              }}
+              onContinueFromSummary={
+                typeof parentId === "string" && !busy
+                  ? () => {
+                      attachBranchSummary(parentId);
+                      startRoot();
+                    }
+                  : undefined
               }
             />
+          )}
+          {graph !== null && parentId !== undefined && (
+            <ContextInspector assembled={assembled} />
           )}
           <Composer
             key={composerKey}
