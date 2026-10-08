@@ -43,12 +43,12 @@ it("welcomes a new visitor before showing the app", async () => {
     }),
   ).toHaveProperty("value", "");
   fireEvent.keyDown(window, { key: "a" });
-  // The question is typed, then the answer, before its buttons appear.
+  // The question is typed into the field, then sent.
   expect(
     await screen.findByRole(
-      "button",
-      { name: "Connect a model" },
-      { timeout: 4000 },
+      "heading",
+      { name: "What is this?" },
+      { timeout: 3000 },
     ),
   ).toBeDefined();
 });

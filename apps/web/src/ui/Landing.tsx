@@ -15,6 +15,7 @@ import {
 import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 
 import { Brand } from "./Brand";
+import { textLength, writeOut } from "./typewriter";
 
 const REPOSITORY = "https://github.com/ProductPope/diagram-4-llm";
 const QUESTION_FIELD = "landing-question";
@@ -22,6 +23,10 @@ const MODIFIER_KEYS = new Set(["Alt", "Control", "Meta", "Shift"]);
 
 /** How long the "assistant" appears to type before an answer shows. */
 const TYPING_MS = 700;
+/** An answer is then written out this many characters at a time... */
+const CHARACTERS_PER_STEP = 5;
+/** ...at this interval, about as fast as a model streams its answer. */
+const WRITING_STEP_MS = 16;
 /** How long the page stays empty before the conversation field appears. */
 const OPENING_DELAY_MS = 800;
 /** The pause between two characters of the first question being typed. */
@@ -46,7 +51,8 @@ interface Topic {
  * and after a short pause shows only an empty field. Any key, or a click
  * or tap on the field, types the first question into it and sends it.
  * After that the visitor asks the next question by pressing Enter or Send,
- * or picks another one, and each answer is "typed" before it shows.
+ * or picks another one. Each answer is "typed", then written out as a
+ * model streams it.
  * "Show everything" reveals the whole page at once. Everything it claims is
  * something the app does today; planned work is labelled as planned.
  */
@@ -54,6 +60,12 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
   const topics = landingTopics({ demoReady, onOpenDemo, onSetup, onOpenApp });
   const [asked, setAsked] = useState<readonly number[]>([]);
   const [typing, setTyping] = useState<number | null>(null);
+  // The answer being written out, and how much of it is shown.
+  const [writing, setWriting] = useState<{
+    readonly index: number;
+    readonly length: number;
+  } | null>(null);
+  const answering = typing !== null || writing !== null;
   const [composerShown, setComposerShown] = useState(
     () => !animationsAllowed(),
   );
@@ -71,7 +83,7 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
     setTyping(animationsAllowed() ? index : null);
   };
   const ask = (index: number) => {
-    if (typing !== null || draft !== null || asked.includes(index)) return;
+    if (answering || draft !== null || asked.includes(index)) return;
     send(index);
   };
   const begin = () => {
@@ -83,6 +95,7 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
   const showEverything = () => {
     setAsked([...asked, ...remaining]);
     setTyping(null);
+    setWriting(null);
   };
 
   useEffect(() => {
@@ -119,11 +132,24 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
     if (typing === null) return;
     const timer = setTimeout(() => {
       setTyping(null);
+      setWriting({ index: typing, length: 0 });
     }, TYPING_MS);
     return () => {
       clearTimeout(timer);
     };
   }, [typing]);
+
+  useEffect(() => {
+    if (writing === null) return;
+    const length = writing.length + CHARACTERS_PER_STEP;
+    const done = length >= textLength(topics[writing.index]?.answer);
+    const timer = setTimeout(() => {
+      setWriting(done ? null : { index: writing.index, length });
+    }, WRITING_STEP_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  });
 
   // A newly asked question scrolls into view, as a sent message does.
   useEffect(() => {
@@ -198,9 +224,17 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
               key={index}
               ref={position === asked.length - 1 ? latest : undefined}
               question={topic.question}
-              typing={typing === index}
+              phase={
+                typing === index
+                  ? "typing"
+                  : writing?.index === index
+                    ? "writing"
+                    : "answered"
+              }
             >
-              {topic.answer}
+              {writing?.index === index
+                ? writeOut(topic.answer, writing.length)
+                : topic.answer}
             </Exchange>
           );
         })}
@@ -227,7 +261,7 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
                   variant="outline"
                   size="sm"
                   className="rounded-full"
-                  disabled={typing !== null}
+                  disabled={answering}
                   onClick={() => {
                     ask(index);
                   }}
@@ -266,7 +300,7 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
               <Button
                 type="submit"
                 size="sm"
-                disabled={typing !== null || draft !== null}
+                disabled={answering || draft !== null}
               >
                 <ArrowUp aria-hidden="true" />
                 Send
@@ -502,16 +536,19 @@ function landingTopics({
   ];
 }
 
-/** One question and its answer, with a typing indicator while it "writes". */
+/**
+ * One question and its answer, with a typing indicator before the answer
+ * is written out.
+ */
 function Exchange({
   ref,
   question,
-  typing,
+  phase,
   children,
 }: {
   readonly ref?: Ref<HTMLElement> | undefined;
   readonly question: string;
-  readonly typing: boolean;
+  readonly phase: "typing" | "writing" | "answered";
   readonly children: ReactNode;
 }) {
   return (
@@ -519,7 +556,8 @@ function Exchange({
       ref={ref}
       className="flex scroll-mt-20 flex-col gap-4"
       aria-label={question}
-      data-phase={typing ? "typing" : "answered"}
+      data-phase={phase}
+      aria-busy={phase !== "answered"}
     >
       <div className="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-muted px-4 py-2.5">
         <h2 className="text-sm font-normal sm:text-base">{question}</h2>
@@ -531,7 +569,7 @@ function Exchange({
         >
           <Network className="size-4" />
         </span>
-        {typing ? (
+        {phase === "typing" ? (
           <p className="flex h-7 items-center gap-1" aria-label="Typing">
             <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground" />
             <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />

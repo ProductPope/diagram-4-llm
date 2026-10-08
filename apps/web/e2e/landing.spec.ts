@@ -1,4 +1,22 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+/**
+ * Moves the installed clock on one interval at a time until `reached`
+ * holds. The welcome page schedules each timer only after rendering what
+ * the previous one changed, so one long jump would fire a single timer,
+ * and a jump made before the page has scheduled the next timer fires none.
+ */
+async function stepUntil(
+  page: Page,
+  intervalMs: number,
+  reached: () => Promise<boolean>,
+) {
+  for (let step = 0; step < 100; step += 1) {
+    if (await reached()) return;
+    await page.clock.runFor(intervalMs);
+  }
+  throw new Error("The page did not reach the expected state.");
+}
 
 test("opens with an empty field after a pause, and any key starts the conversation", async ({
   page,
@@ -7,27 +25,46 @@ test("opens with an empty field after a pause, and any key starts the conversati
   await page.goto("/");
   const field = page.getByLabel("Next question");
   const first = page.getByRole("region", { name: "What is this?" });
+  const phaseOfFirst = async () =>
+    (await first.count()) === 0 ? null : first.getAttribute("data-phase");
   await expect(page.getByRole("link", { name: "diagram-4-llm" })).toBeVisible();
   await expect(field).toHaveCount(0);
 
-  await page.clock.runFor(800);
-  await expect(field).toBeVisible();
+  await stepUntil(page, 100, async () => (await field.count()) > 0);
   await expect(field).toHaveValue("");
   await expect(first).toHaveCount(0);
 
-  // The key is not typed: the first question is, one character at a time.
+  // The key is not typed: the first question is, a little at a time.
   await page.keyboard.press("x");
   const question = "What is this?";
-  for (let length = 1; length <= question.length; length += 1) {
-    await page.clock.runFor(45);
-    await expect(field).toHaveValue(question.slice(0, length));
-  }
+  await stepUntil(page, 45, async () => (await field.inputValue()) !== "");
+  const typed = await field.inputValue();
+  expect(question.startsWith(typed) && typed.length < question.length).toBe(
+    true,
+  );
+  await expect(first).toHaveCount(0);
+  await stepUntil(
+    page,
+    45,
+    async () => (await field.inputValue()) === question,
+  );
   await expect(first).toHaveCount(0);
 
-  // Once typed, it is sent, and the answer is typed before it shows.
-  await page.clock.runFor(300);
-  await expect(first).toHaveAttribute("data-phase", "typing");
-  await page.clock.runFor(700);
+  // Once typed, it is sent. The answer is "typed", then written out a little
+  // at a time, as a model streams it.
+  await stepUntil(page, 100, async () => (await phaseOfFirst()) === "typing");
+  await stepUntil(page, 100, async () => (await phaseOfFirst()) === "writing");
+  const answer = first.getByRole("paragraph").first();
+  await stepUntil(page, 16, async () => (await answer.count()) > 0);
+  const sentence =
+    "A chat client for AI models in which a conversation is a map, not a scroll.";
+  const written = (await answer.textContent()) ?? "";
+  expect(sentence.startsWith(written) && written.length < sentence.length).toBe(
+    true,
+  );
+  await expect(first.getByRole("button")).toHaveCount(0);
+
+  await page.clock.resume();
   await expect(first).toHaveAttribute("data-phase", "answered");
   await expect(
     first.getByText("a conversation is a map, not a scroll"),
@@ -68,7 +105,9 @@ test("welcomes a new visitor with a conversation they move forward", async ({
     exchange("Why not just keep chatting in one thread?"),
   ).toHaveCount(0);
 
-  // Enter sends the suggested question; the answer is typed, then shown.
+  // Enter sends the suggested question once the answer is written out; the
+  // next answer is typed, then shown.
+  await expect(first).toHaveAttribute("data-phase", "answered");
   await expect(page.getByLabel("Next question")).toHaveValue(
     "Why not just keep chatting in one thread?",
   );
