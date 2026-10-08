@@ -78,6 +78,22 @@ test("minimizes the map to a strip that navigates the branch", async ({
   await expect(
     page.getByRole("button", { name: "Minimize the map" }),
   ).toBeFocused();
+  // The restored map fits the whole tree into its new size again.
+  await expect(async () => {
+    const area = await map.boundingBox();
+    const nodes = await map.locator(".map-node").all();
+    expect(area).not.toBeNull();
+    expect(nodes.length).toBeGreaterThan(0);
+    for (const node of nodes) {
+      const box = await node.boundingBox();
+      expect(box).not.toBeNull();
+      if (area === null || box === null) return;
+      expect(box.x).toBeGreaterThanOrEqual(area.x);
+      expect(box.y).toBeGreaterThanOrEqual(area.y);
+      expect(box.x + box.width).toBeLessThanOrEqual(area.x + area.width);
+      expect(box.y + box.height).toBeLessThanOrEqual(area.y + area.height);
+    }
+  }).toPass();
 
   expect(consoleErrors).toEqual([]);
 });

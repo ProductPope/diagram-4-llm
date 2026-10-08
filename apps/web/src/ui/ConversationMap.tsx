@@ -18,6 +18,7 @@ import {
   Position,
   ReactFlow,
   useReactFlow,
+  useStore,
   type Edge,
   type Node,
   type NodeProps,
@@ -218,6 +219,9 @@ const BRANCH_TAIL = 6;
  * Keeps the relevant part of the conversation in view as it changes: the
  * whole tree while it is small enough to read at once, otherwise the end of
  * the selected branch, so the user always sees where the next message goes.
+ * It also refits when the map changes size: a map restored from the strip
+ * mounts while its panel is still growing, and the first fit would leave
+ * part of the tree outside.
  */
 function FollowBranch({
   total,
@@ -227,6 +231,8 @@ function FollowBranch({
   readonly branchIds: readonly NodeId[];
 }) {
   const { fitView } = useReactFlow();
+  const width = useStore((state) => state.width);
+  const height = useStore((state) => state.height);
   const tail = branchIds.slice(-BRANCH_TAIL).join(" ");
   useEffect(() => {
     const nodes =
@@ -238,7 +244,7 @@ function FollowBranch({
       maxZoom: 1,
       ...(nodes === undefined ? {} : { nodes }),
     });
-  }, [total, tail, fitView]);
+  }, [total, tail, width, height, fitView]);
   return null;
 }
 
