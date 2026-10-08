@@ -230,6 +230,10 @@ based on observed use. Each one runs on the user's device:
       the selected branch's prompts to the title model and shows its topics
       as headings in the branch, kept while the page is open
       ([ADR 0012](adr/0012-session-topics.md))
+- [x] Claude.ai data exports: `conversations.json` opens on the session
+      page as a read-only map per conversation, with a list to switch
+      between them, kept only while the page is open
+      ([ADR 0013](adr/0013-claude-ai-export-map.md))
 
 ## 7. Success criteria
 

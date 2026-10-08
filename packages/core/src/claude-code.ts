@@ -166,7 +166,7 @@ export function readClaudeCodeSession(
 
 /** The steps of a session as a forest, children in transcript order. */
 export function sessionForest(
-  session: ClaudeCodeSession,
+  session: Pick<ClaudeCodeSession, "steps">,
 ): Map<string | null, string[]> {
   const children = new Map<string | null, string[]>();
   for (const step of session.steps) {
@@ -185,7 +185,7 @@ export function sessionForest(
  * its children, so both walks end.
  */
 export function sessionBranch(
-  session: ClaudeCodeSession,
+  session: Pick<ClaudeCodeSession, "steps">,
   id: string,
 ): SessionStep[] {
   const byId = new Map(session.steps.map((step) => [step.id, step]));

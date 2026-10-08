@@ -373,7 +373,7 @@ Browser-specific constraints:
   visit without a fragment shows the welcome page; once the app has been
   used, or a provider is configured, the bare address opens the app.
 - **Claude Code sessions** (`packages/core/src/claude-code.ts`,
-  `apps/web/src/ui/SessionPage.tsx`): "Map a Claude Code session" in the
+  `apps/web/src/ui/SessionPage.tsx`): "Map a session or Claude.ai export" in the
   sidebar opens a page where a session transcript from
   `~/.claude/projects` is opened with a file picker and shown read-only:
   the map of its prompts, activity and compactions next to the selected
@@ -386,6 +386,15 @@ Browser-specific constraints:
   branch's prompts to the title model and shows the topics it returns as
   headings in the branch, also kept only while the page is open
   ([ADR 0012](adr/0012-session-topics.md)).
+- **Claude.ai exports** (`packages/core/src/claude-ai.ts`): the same page
+  opens the `conversations.json` of a Claude.ai data export. Each
+  conversation becomes session steps (the user's messages as prompts,
+  answers as activity with tool calls and results) and is shown on the
+  same map, with a list to switch between conversations. Conversations
+  and messages that could not be read are reported, and content with
+  nothing to show is counted by kind. Like a transcript, the export is
+  kept only while the page is open
+  ([ADR 0013](adr/0013-claude-ai-export-map.md)).
 - **Welcome page** (`apps/web/src/ui/Landing.tsx`): written as a
   conversation with the app. It opens empty and, after a short pause,
   shows only an empty field. Any key (except browser shortcuts), or a

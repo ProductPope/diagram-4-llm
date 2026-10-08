@@ -1,19 +1,27 @@
 import {
+  err,
   estimateTokens,
+  ok,
+  readClaudeAiExport,
   readClaudeCodeSession,
   sessionBranch,
   type ActivityItem,
-  type ClaudeCodeSession,
+  type ClaudeAiConversation,
+  type Result,
   type SessionStep,
 } from "@diagram-4-llm/core";
 import { Alert, AlertDescription } from "#components/ui/alert";
 import { Badge } from "#components/ui/badge";
 import { Button, buttonVariants } from "#components/ui/button";
+import { NativeSelect, NativeSelectOption } from "#components/ui/native-select";
 import { cn } from "#lib/utils";
 import { ArrowLeft, CircleAlert, FileText, Shapes } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
+  describeExportError,
+  describeExportProblems,
+  describeHiddenContent,
   describeNotShown,
   describeProblems,
   describeSessionError,
@@ -49,15 +57,27 @@ type Topics =
   | { readonly status: "detected"; readonly topics: readonly Topic[] }
   | { readonly status: "failed"; readonly message: string };
 
+/** One map: a Claude Code session, or one conversation of an export. */
+interface MapView {
+  readonly title: string;
+  /** Parents before children. */
+  readonly steps: readonly SessionStep[];
+  readonly notShown: string | null;
+}
+
 interface Opened {
-  readonly name: string;
-  readonly session: ClaudeCodeSession;
+  /** A transcript holds one map, an export one per conversation. */
+  readonly maps: readonly [MapView, ...MapView[]];
+  readonly current: number;
+  readonly problems: string | null;
+  readonly isExport: boolean;
 }
 
 /**
- * A Claude Code session transcript as a read-only map. The file is read in
- * the browser and kept only while the page is open: transcripts can hold
- * secrets that passed through a tool, and Claude Code already keeps them.
+ * A Claude Code session transcript, or a conversation of a Claude.ai data
+ * export, as a read-only map. The file is read in the browser and kept only
+ * while the page is open: both can hold secrets, and the user already keeps
+ * the file.
  */
 export function SessionPage({ topicModel, onBack }: Props) {
   const [opened, setOpened] = useState<Opened | null>(null);
@@ -105,18 +125,22 @@ export function SessionPage({ topicModel, onBack }: Props) {
       );
       return;
     }
-    const read = readClaudeCodeSession(text);
+    const read = file.name.toLowerCase().endsWith(".json")
+      ? openExport(text)
+      : openTranscript(file.name, text);
     if (!read.ok) {
-      setError(
-        `${file.name} could not be opened: ${describeSessionError(read.error)}`,
-      );
+      setError(`${file.name} could not be opened: ${read.error}`);
       return;
     }
     setError(null);
+    show(read.value, 0);
+  };
+
+  const show = (next: Opened, current: number) => {
     detecting.current?.abort();
     setTopics({ status: "none" });
-    setOpened({ name: file.name, session: read.value });
-    setSelectedId(read.value.steps.at(-1)?.id ?? null);
+    setOpened({ ...next, current });
+    setSelectedId(next.maps[current]?.steps.at(-1)?.id ?? null);
   };
 
   const picker = (
@@ -127,11 +151,11 @@ export function SessionPage({ topicModel, onBack }: Props) {
       )}
     >
       <FileText aria-hidden="true" />
-      {opened === null ? "Open a session transcript" : "Open another session"}
+      {opened === null ? "Open a transcript or export" : "Open another file"}
       <input
         type="file"
         className="sr-only"
-        accept=".jsonl"
+        accept=".jsonl,.json"
         onChange={(event) => {
           const file = event.target.files?.[0];
           event.target.value = "";
@@ -152,19 +176,21 @@ export function SessionPage({ topicModel, onBack }: Props) {
           Back to conversations
         </Button>
       </header>
-      {opened === null || selectedId === null ? (
+      {opened === null ? (
         <main className="flex flex-1 flex-col items-start gap-4 overflow-y-auto p-6">
           <h2 className="text-lg font-semibold">
-            Map of a Claude Code session
+            Map of a Claude Code session or Claude.ai conversation
           </h2>
           <p className="max-w-prose text-sm text-muted-foreground">
             Claude Code keeps each session as a transcript in{" "}
             <code>
               ~/.claude/projects/&lt;project&gt;/&lt;session&gt;.jsonl
             </code>
-            . Open one to see its prompts, answers and tool calls as a tree. The
-            file is read in this tab only: nothing is saved or sent, and the map
-            is gone when you leave this page.
+            . A Claude.ai data export holds all your conversations in{" "}
+            <code>conversations.json</code>. Open either to see the prompts,
+            answers and tool calls as a tree. The file is read in this tab only:
+            nothing is saved or sent, and the map is gone when you leave this
+            page.
           </p>
           {picker}
           {error !== null && <ErrorNotice text={error} />}
@@ -174,6 +200,9 @@ export function SessionPage({ topicModel, onBack }: Props) {
           opened={opened}
           selectedId={selectedId}
           onSelect={setSelectedId}
+          onShowMap={(index) => {
+            show(opened, index);
+          }}
           picker={picker}
           error={error}
           narrow={narrow}
@@ -186,10 +215,54 @@ export function SessionPage({ topicModel, onBack }: Props) {
   );
 }
 
+function openTranscript(name: string, text: string): Result<Opened, string> {
+  const read = readClaudeCodeSession(text);
+  if (!read.ok) return err(describeSessionError(read.error));
+  const session = read.value;
+  return ok({
+    maps: [
+      {
+        title: session.title ?? name,
+        steps: session.steps,
+        notShown: describeNotShown(session.notShown),
+      },
+    ],
+    current: 0,
+    problems: describeProblems(session.problems),
+    isExport: false,
+  });
+}
+
+function openExport(text: string): Result<Opened, string> {
+  let document: unknown;
+  try {
+    document = JSON.parse(text);
+  } catch (reason) {
+    return err(
+      `It is not valid JSON: ${reason instanceof Error ? reason.message : String(reason)}`,
+    );
+  }
+  const read = readClaudeAiExport(document);
+  if (!read.ok) return err(describeExportError(read.error));
+  const toMap = (conversation: ClaudeAiConversation): MapView => ({
+    title: conversation.title,
+    steps: conversation.steps,
+    notShown: describeHiddenContent(conversation.notShown),
+  });
+  const [first, ...rest] = read.value.conversations;
+  return ok({
+    maps: [toMap(first), ...rest.map(toMap)],
+    current: 0,
+    problems: describeExportProblems(read.value.problems),
+    isExport: true,
+  });
+}
+
 function Session({
   opened,
   selectedId,
   onSelect,
+  onShowMap,
   picker,
   error,
   narrow,
@@ -198,8 +271,9 @@ function Session({
   onDetectTopics,
 }: {
   readonly opened: Opened;
-  readonly selectedId: string;
+  readonly selectedId: string | null;
   readonly onSelect: (id: string) => void;
+  readonly onShowMap: (index: number) => void;
   readonly picker: ReactNode;
   readonly error: string | null;
   readonly narrow: boolean;
@@ -207,26 +281,40 @@ function Session({
   readonly topics: Topics;
   readonly onDetectTopics: (items: readonly TopicItem[]) => void;
 }) {
-  const { session, name } = opened;
-  const branch = sessionBranch(session, selectedId);
+  const view = opened.maps[opened.current] ?? opened.maps[0];
+  const branch = selectedId === null ? [] : sessionBranch(view, selectedId);
   const prompts = branch.flatMap((step) =>
     step.kind === "prompt" ? [{ id: step.id, text: step.text }] : [],
   );
-  const notShown = describeNotShown(session.notShown);
-  const problems = describeProblems(session.problems);
   return (
     <div
       className={cn("flex min-h-0 flex-1", narrow ? "flex-col" : "flex-row")}
     >
       <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-semibold">{session.title ?? name}</h2>
+          <h2 className="font-semibold">{view.title}</h2>
           {picker}
         </div>
+        {opened.isExport && (
+          <NativeSelect
+            aria-label="Conversation"
+            className="w-full max-w-md"
+            value={String(opened.current)}
+            onChange={(event) => {
+              onShowMap(Number(event.target.value));
+            }}
+          >
+            {opened.maps.map((map, index) => (
+              <NativeSelectOption key={index} value={String(index)}>
+                {map.title}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        )}
         {error !== null && <ErrorNotice text={error} />}
-        {problems !== null && <ErrorNotice text={problems} />}
-        {notShown !== null && (
-          <p className="text-xs text-muted-foreground">{notShown}</p>
+        {opened.problems !== null && <ErrorNotice text={opened.problems} />}
+        {view.notShown !== null && (
+          <p className="text-xs text-muted-foreground">{view.notShown}</p>
         )}
         <TopicsView
           topicModel={topicModel}
@@ -237,11 +325,17 @@ function Session({
           }}
           onSelect={onSelect}
         />
-        <SessionBranch
-          branch={branch}
-          selectedId={selectedId}
-          topicStarts={topicStarts(topics)}
-        />
+        {selectedId === null ? (
+          <p className="text-sm text-muted-foreground">
+            This conversation has nothing to show on the map.
+          </p>
+        ) : (
+          <SessionBranch
+            branch={branch}
+            selectedId={selectedId}
+            topicStarts={topicStarts(topics)}
+          />
+        )}
       </main>
       <div
         className={cn(
@@ -249,12 +343,15 @@ function Session({
           narrow ? "h-[45dvh] border-t" : "w-2/5 border-l",
         )}
       >
-        <SessionMap
-          session={session}
-          branch={branch}
-          selectedId={selectedId}
-          onSelect={onSelect}
-        />
+        {selectedId !== null && (
+          <SessionMap
+            key={opened.current}
+            steps={view.steps}
+            branch={branch}
+            selectedId={selectedId}
+            onSelect={onSelect}
+          />
+        )}
       </div>
     </div>
   );
