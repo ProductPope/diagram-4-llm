@@ -226,6 +226,10 @@ based on observed use. Each one runs on the user's device:
       `/session-map` command opens a pane with the current session's map,
       read from the MCP server and read again after each answer
       ([ADR 0011](adr/0011-session-map-pane.md))
+- [x] Topics on a Claude Code session: "Detect topics" sends the starts of
+      the selected branch's prompts to the title model and shows its topics
+      as headings in the branch, kept while the page is open
+      ([ADR 0012](adr/0012-session-topics.md))
 
 ## 7. Success criteria
 

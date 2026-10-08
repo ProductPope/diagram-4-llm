@@ -381,7 +381,11 @@ Browser-specific constraints:
   navigated like the conversation map. Lines that could not be read and
   lines with nothing to show are reported. The transcript is kept only
   while the page is open, never stored
-  ([ADR 0009](adr/0009-claude-code-session-map.md)).
+  ([ADR 0009](adr/0009-claude-code-session-map.md)). "Detect topics"
+  (`apps/web/src/chat/topics.ts`) sends the starts of the selected
+  branch's prompts to the title model and shows the topics it returns as
+  headings in the branch, also kept only while the page is open
+  ([ADR 0012](adr/0012-session-topics.md)).
 - **Welcome page** (`apps/web/src/ui/Landing.tsx`): written as a
   conversation with the app. It opens empty and, after a short pause,
   shows only an empty field. Any key (except browser shortcuts), or a
