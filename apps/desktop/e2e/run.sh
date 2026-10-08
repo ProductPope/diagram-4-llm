@@ -9,9 +9,11 @@ if [[ "${1:-}" != "--inside" ]]; then
   exec xvfb-run -a dbus-run-session -- "$PWD/run.sh" --inside
 fi
 
-# A keychain of its own, unlocked with a throwaway password, so that the
-# tests never touch the user's.
-export XDG_DATA_HOME
+# A home folder of its own, where the tests write Claude Code sessions, and a
+# keychain of its own, unlocked with a throwaway password, so that the tests
+# never touch the user's.
+export HOME XDG_DATA_HOME
+HOME="$(mktemp -d)"
 XDG_DATA_HOME="$(mktemp -d)"
 printf 'test' | gnome-keyring-daemon --unlock --components=secrets >/dev/null
 
@@ -25,4 +27,4 @@ for _ in $(seq 50); do
 done
 
 # The tests share one driver, so they run one at a time.
-node --test --test-concurrency=1 keychain.test.ts local-server.test.ts
+node --test --test-concurrency=1 keychain.test.ts local-server.test.ts sessions.test.ts

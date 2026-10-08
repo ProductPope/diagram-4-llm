@@ -10,6 +10,7 @@ import {
   listOpenAICompatibleModels,
 } from "../providers/openai-compatible";
 import type { ProviderAdapter } from "../providers/types";
+import type { SessionFolder } from "../storage/session-folder";
 
 /** Models offered when sending; the first is the default for new branches. */
 const modelList = z.array(z.string().min(1)).min(1);
@@ -114,7 +115,7 @@ export async function saveSettings(
 }
 
 /**
- * What the desktop app adds to the web app (ADR 0014, ADR 0015). The
+ * What the desktop app adds to the web app (ADR 0014, ADR 0015, ADR 0016). The
  * browser version has neither.
  */
 export interface Desktop {
@@ -125,6 +126,7 @@ export interface Desktop {
    * to call it directly, so its requests stay in the page.
    */
   readonly serverFetch: typeof fetch;
+  readonly sessionFolder: SessionFolder;
 }
 
 export function createAdapter(

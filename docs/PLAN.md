@@ -236,11 +236,13 @@ based on observed use. Each one runs on the user's device:
       ([ADR 0013](adr/0013-claude-ai-export-map.md))
 - [x] Desktop app, first part (`apps/desktop`): the web app in a Tauri
       window, with the API key in the operating system's keychain
-      ([ADR 0014](adr/0014-desktop-app-keychain.md)). Reading session
-      logs without picking files is still to come.
+      ([ADR 0014](adr/0014-desktop-app-keychain.md))
 - [x] Desktop app, local servers without CORS setup: requests to
       OpenAI-compatible servers are made by the app, without an Origin
       ([ADR 0015](adr/0015-desktop-server-requests.md))
+- [x] Desktop app, sessions without picking files: the session page lists
+      the transcripts in `~/.claude/projects` and opens one from the list
+      ([ADR 0016](adr/0016-desktop-session-folder.md))
 
 ## 7. Success criteria
 

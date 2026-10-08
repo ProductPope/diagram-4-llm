@@ -22,6 +22,7 @@ supersedes the old one.
 | [0013](0013-claude-ai-export-map.md)     | A Claude.ai data export is mapped read-only on the session page           | Proposed |
 | [0014](0014-desktop-app-keychain.md)     | The desktop app wraps the web build and keeps the API key in the keychain | Proposed |
 | [0015](0015-desktop-server-requests.md)  | The desktop app sends requests to OpenAI-compatible servers itself        | Proposed |
+| [0016](0016-desktop-session-folder.md)   | The desktop app lists Claude Code's sessions itself                       | Proposed |
 
 Records move from Proposed to Accepted when phase 0 implementation confirms
 them.

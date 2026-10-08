@@ -886,6 +886,7 @@ name = "diagram-4-llm"
 version = "0.0.0"
 dependencies = [
  "keyring",
+ "serde",
  "tauri",
  "tauri-build",
  "tauri-plugin-http",

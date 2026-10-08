@@ -59,6 +59,27 @@ export function describeProblems(
   return `${count} not on the map. The first, line ${first.line}: ${first.message}`;
 }
 
+/** Entries of Claude Code's folder that could not be listed. */
+export function describeListProblems(
+  problems: readonly string[],
+): string | null {
+  const first = problems[0];
+  if (first === undefined) return null;
+  const count =
+    problems.length === 1
+      ? "1 entry of Claude Code's folder could not be read"
+      : `${problems.length.toLocaleString("en")} entries of Claude Code's folder could not be read`;
+  return `${count}; the sessions in it may be missing from the list. The first: ${first}`;
+}
+
+/** A file's size, rounded to the unit people read it in. */
+export function describeSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes.toLocaleString("en")} bytes`;
+  if (bytes < 1024 * 1024)
+    return `${Math.round(bytes / 1024).toLocaleString("en")} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function describeSessionError(error: SessionReadError): string {
   switch (error.code) {
     case "empty":
