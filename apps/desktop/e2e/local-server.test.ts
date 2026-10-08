@@ -55,11 +55,17 @@ void test("talks to a local server that has no CORS setup", async () => {
       await type("#settings-api-key", "");
       await type("#settings-models", "local-model");
       await click("Save");
+      await until(
+        `return document.querySelector("#settings-base-url") === null`,
+      );
       await type("#composer-input", "Hello");
       await click("Send");
-      await until(
-        `return document.body.textContent.includes("Hello from the local server.")`,
-      );
+      // An answer, or the error that took its place.
+      const outcome = await until(`
+        const alerts = [...document.querySelectorAll("[role=alert]")];
+        if (alerts.length > 0) return alerts.map((a) => a.textContent).join(" ");
+        return document.body.textContent.includes("Hello from the local server.");`);
+      assert.equal(outcome, true);
     });
     // The app sends no Origin, as other local clients do.
     assert.ok(server.seen.length > 0);

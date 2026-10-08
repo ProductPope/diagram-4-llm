@@ -1039,8 +1039,11 @@ export function App({ openStore, settingsStorage, desktop }: AppProps) {
             initial={settings}
             keyInKeychain={keyStore !== null}
             onSave={(next) => {
-              void applySettings(next);
-              setShowSettings(false);
+              // The form stays open until the keychain has the key, so that
+              // nothing is sent with the settings it replaces.
+              void applySettings(next).then(() => {
+                setShowSettings(false);
+              });
             }}
             onCancel={() => {
               setShowSettings(false);
