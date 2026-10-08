@@ -140,6 +140,9 @@ consecutive weeks and records the friction points in issues.
       chosen from the provider's list
 - [x] A welcome page that explains the app's value and privacy, written as
       a conversation, leading to the demo or to setup
+- [x] Usable 320 pixels wide (WCAG 1.4.10 reflow): below 800 pixels the
+      app shows the conversation list, the conversation or the map, one at
+      a time
 - [x] Performance checked with a 1,000-turn conversation (render and branch
       switch budgets in an end-to-end test; panning frame rate not measured)
 
