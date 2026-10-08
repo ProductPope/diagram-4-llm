@@ -4,7 +4,13 @@ export { ok, err } from "./result.js";
 export type { GraphError } from "./errors.js";
 export { describeGraphError } from "./errors.js";
 export type { ConversationGraph } from "./graph.js";
-export { childrenOf, isTurn, isUsable, pathTo } from "./graph.js";
+export {
+  childrenOf,
+  currentSummaries,
+  isTurn,
+  isUsable,
+  pathTo,
+} from "./graph.js";
 export type {
   AssembledContext,
   AssemblyOptions,

@@ -2,6 +2,7 @@ import {
   addSummary,
   assembleContext,
   createConversation,
+  currentSummaries,
   describeGraphError,
   isUsable,
   pathTo,
@@ -47,7 +48,6 @@ import {
 } from "../app/budget";
 import { labelOf } from "../app/label";
 import { referencesOnPath, toggleReference } from "../app/references";
-import { currentSummaries } from "../app/summaries";
 import { DEMO_CONVERSATION_ID, demoConversation } from "../app/demo";
 import {
   exportFileName,

@@ -6,7 +6,7 @@ import type {
   TurnNode,
   UserTurn,
 } from "@diagram-4-llm/core";
-import { isUsable } from "@diagram-4-llm/core";
+import { currentSummaries, isUsable } from "@diagram-4-llm/core";
 
 import { Badge } from "#components/ui/badge";
 import { Button } from "#components/ui/button";
@@ -25,7 +25,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { siblingsOf } from "../app/branch";
 import { labelOf } from "../app/label";
-import { currentSummaries } from "../app/summaries";
 import { MarkdownContent } from "./MarkdownContent";
 import { SuggestedBranches } from "./SuggestedBranches";
 import { SummaryCard } from "./SummaryCard";

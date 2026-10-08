@@ -1,14 +1,14 @@
+import { describe, expect, it } from "vitest";
+
 import {
   addSummary,
   addUserTurn,
   createConversation,
+  currentSummaries,
   type ConversationGraph,
   type NewSummary,
   type Result,
-} from "@diagram-4-llm/core";
-import { describe, expect, it } from "vitest";
-
-import { currentSummaries } from "./summaries";
+} from "../src/index.js";
 
 const T = "2026-01-01T00:00:00.000Z";
 
