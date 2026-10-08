@@ -58,19 +58,10 @@ export function checkSummary(
   summary: Pick<SummaryNode, "covers" | "content" | "revises">,
 ): GraphError | null {
   if (summary.content.trim() === "") return { code: "empty-content" };
+  const rangeViolation = checkSummaryRange(graph, summary.covers);
+  if (rangeViolation !== null) return rangeViolation;
 
   const { fromId, toId } = summary.covers;
-  const from = graph.nodes.get(fromId);
-  if (from === undefined) return { code: "unknown-node", id: fromId };
-  if (!isTurn(from)) return { code: "not-a-turn", id: fromId };
-  const to = graph.nodes.get(toId);
-  if (to === undefined) return { code: "unknown-node", id: toId };
-  if (!isTurn(to)) return { code: "not-a-turn", id: toId };
-  if (!isUsable(to)) return { code: "summary-not-finished", toId };
-  if (!ancestorsInclusive(graph, to).some((node) => node.id === fromId)) {
-    return { code: "summary-range", fromId, toId };
-  }
-
   if (summary.revises !== undefined) {
     const revised = graph.nodes.get(summary.revises);
     if (revised === undefined)
@@ -82,6 +73,25 @@ export function checkSummary(
     ) {
       return { code: "revision-mismatch", revisesId: summary.revises };
     }
+  }
+  return null;
+}
+
+/** Both ends are turns, the end is usable, and the start is its ancestor or itself. */
+export function checkSummaryRange(
+  graph: ConversationGraph,
+  covers: { readonly fromId: NodeId; readonly toId: NodeId },
+): GraphError | null {
+  const { fromId, toId } = covers;
+  const from = graph.nodes.get(fromId);
+  if (from === undefined) return { code: "unknown-node", id: fromId };
+  if (!isTurn(from)) return { code: "not-a-turn", id: fromId };
+  const to = graph.nodes.get(toId);
+  if (to === undefined) return { code: "unknown-node", id: toId };
+  if (!isTurn(to)) return { code: "not-a-turn", id: toId };
+  if (!isUsable(to)) return { code: "summary-not-finished", toId };
+  if (!ancestorsInclusive(graph, to).some((node) => node.id === fromId)) {
+    return { code: "summary-range", fromId, toId };
   }
   return null;
 }

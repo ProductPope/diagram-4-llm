@@ -8,7 +8,7 @@ import type {
   TurnNode,
 } from "./model.js";
 import { err, ok, type Result } from "./result.js";
-import { checkUserTurn } from "./rules.js";
+import { checkSummaryRange, checkUserTurn } from "./rules.js";
 
 export interface ProviderMessage {
   readonly role: "user" | "assistant";
@@ -74,6 +74,41 @@ export function assembleForUserTurn(
   return ok(
     render(graph, ancestorsInclusive(graph, turn).map(fromTurn), options),
   );
+}
+
+/**
+ * Context for summarising a path segment, both ends inclusive. The segment
+ * is sent as a single user message: a transcript with each turn in its own
+ * block, including the turn's references as they were sent. A segment can
+ * start with an answer, and providers require the first message to be the
+ * user's, so the turns cannot be sent as messages of their own roles. The
+ * instruction to summarise belongs in `systemPrompt`.
+ */
+export function assembleForSummary(
+  graph: ConversationGraph,
+  covers: { readonly fromId: NodeId; readonly toId: NodeId },
+  options: AssemblyOptions,
+): Result<AssembledContext, GraphError> {
+  const violation = checkSummaryRange(graph, covers);
+  if (violation !== null) return err(violation);
+  const path = pathTo(graph, covers.toId);
+  if (!path.ok) return path;
+  const start = path.value.findIndex((turn) => turn.id === covers.fromId);
+  const segment = render(graph, path.value.slice(start).map(fromTurn), options);
+  const transcript = segment.messages
+    .map(
+      (message) => `<turn role="${message.role}">\n${message.content}\n</turn>`,
+    )
+    .join("\n\n");
+  return ok({
+    system: segment.system,
+    messages: [{ role: "user", content: transcript }],
+    manifest: {
+      entries: segment.manifest.entries,
+      estimatedInputTokens:
+        estimateTokens(segment.system ?? "") + estimateTokens(transcript),
+    },
+  });
 }
 
 interface Segment {
