@@ -138,6 +138,8 @@ consecutive weeks and records the friction points in issues.
 - [x] A demo conversation that can be opened before connecting a provider
 - [x] A setup assistant on first start: provider, connection test, models
       chosen from the provider's list
+- [x] A welcome page that explains the app's value and privacy, written as
+      a conversation, leading to the demo or to setup
 - [x] Performance checked with a 1,000-turn conversation (render and branch
       switch budgets in an end-to-end test; panning frame rate not measured)
 

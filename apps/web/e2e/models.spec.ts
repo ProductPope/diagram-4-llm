@@ -18,7 +18,7 @@ test("answers the same question with two models and keeps each branch's model", 
     }
     await answerEveryRequest(route, sent);
   });
-  await page.goto("/");
+  await page.goto("/#/app");
   await configureProvider(page, ["model-a", "model-b"]);
 
   const input = page.getByLabel("Message", { exact: true });

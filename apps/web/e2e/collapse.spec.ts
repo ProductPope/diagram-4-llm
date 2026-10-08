@@ -12,7 +12,7 @@ test("collapses a subtree on the map and keeps it collapsed after reload", async
 }) => {
   const sent: SentMessage[][] = [];
   await page.route(ENDPOINT, (route) => answerEveryRequest(route, sent));
-  await page.goto("/");
+  await page.goto("/#/app");
   await configureProvider(page);
 
   const input = page.getByLabel("Message", { exact: true });

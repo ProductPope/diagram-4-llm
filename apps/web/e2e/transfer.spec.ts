@@ -15,7 +15,7 @@ test("exports a conversation and imports it into a browser that has never seen i
 }, testInfo) => {
   const sent: SentMessage[][] = [];
   await page.route(ENDPOINT, (route) => answerEveryRequest(route, sent));
-  await page.goto("/");
+  await page.goto("/#/app");
   await configureProvider(page);
   const input = page.getByLabel("Message", { exact: true });
   await input.fill("Which database?");
@@ -39,7 +39,7 @@ test("exports a conversation and imports it into a browser that has never seen i
   // A new browser context has its own, empty IndexedDB.
   const fresh = await browser.newContext();
   const other = await fresh.newPage();
-  await other.goto("/");
+  await other.goto("/#/app");
   await expect(other.getByText("No conversations yet.")).toBeVisible();
   const importInput = other.getByLabel("Import conversation");
 

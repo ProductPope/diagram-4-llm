@@ -12,7 +12,7 @@ test("moves through the map with arrow keys and shows a branch with Enter", asyn
 }) => {
   const sent: SentMessage[][] = [];
   await page.route(ENDPOINT, (route) => answerEveryRequest(route, sent));
-  await page.goto("/");
+  await page.goto("/#/app");
   await configureProvider(page);
 
   const input = page.getByLabel("Message", { exact: true });
@@ -80,7 +80,7 @@ test("focuses the composer with / and forks from the map with E", async ({
 }) => {
   const sent: SentMessage[][] = [];
   await page.route(ENDPOINT, (route) => answerEveryRequest(route, sent));
-  await page.goto("/");
+  await page.goto("/#/app");
   await configureProvider(page);
 
   const input = page.getByLabel("Message", { exact: true });

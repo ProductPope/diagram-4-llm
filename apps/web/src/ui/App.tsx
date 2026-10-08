@@ -23,7 +23,6 @@ import {
   CircleAlert,
   Download,
   GitFork,
-  Network,
   Plus,
   Settings2,
   Sparkles,
@@ -46,6 +45,8 @@ import {
   saveSettings,
   type ProviderSettings,
 } from "../app/settings";
+import { defaultRoute } from "../app/route";
+import { navigate, useRoute } from "../app/useRoute";
 import { useStoreValue } from "../app/useStoreValue";
 import {
   generateAnswer,
@@ -68,7 +69,9 @@ import { ConversationList } from "./ConversationList";
 import { ConversationMap } from "./ConversationMap";
 import { ReadingPane } from "./ReadingPane";
 import { SettingsForm } from "./SettingsForm";
-import { SetupWizard } from "./SetupWizard";
+import { Brand } from "./Brand";
+import { Landing } from "./Landing";
+import { SetupPage } from "./SetupPage";
 
 export interface AppProps {
   readonly openStore: () => Promise<StorageResult<ConversationStore>>;
@@ -96,6 +99,7 @@ const env: Environment = {
   now: () => new Date().toISOString(),
 };
 const SAVE_DELAY_MS = 300;
+const USED_APP_KEY = "diagram-4-llm.used-app";
 
 export function App({ openStore, settingsStorage }: AppProps) {
   const [storage, setStorage] = useState<StorageState>({ status: "loading" });
@@ -106,9 +110,16 @@ export function App({ openStore, settingsStorage }: AppProps) {
     loadSettings(settingsStorage),
   );
   const [showSettings, setShowSettings] = useState(false);
-  // Offered on every start until a provider is configured; skipping hides
-  // it only for this visit.
-  const [showSetup, setShowSetup] = useState(() => settings === null);
+  const route = useRoute();
+  const page =
+    route ??
+    defaultRoute(
+      settings !== null || settingsStorage.getItem(USED_APP_KEY) !== null,
+    );
+  // Remembered so that a later visit to the bare address opens the app.
+  useEffect(() => {
+    if (page === "app") settingsStorage.setItem(USED_APP_KEY, "1");
+  }, [page, settingsStorage]);
   const [current, setCurrent] = useState<Store<ConversationGraph> | null>(null);
   const [anchor, setAnchor] = useState<NodeId | null>(null);
   const [reveal, setReveal] = useState<{
@@ -393,9 +404,6 @@ export function App({ openStore, settingsStorage }: AppProps) {
       setError(describeStorageError(loaded.error));
       return;
     }
-    // Choosing a conversation, the demo included, takes the user out of
-    // setup; it stays available from the composer and from Settings.
-    setShowSetup(false);
     setCurrent(createStore(loaded.value));
     setAnchor(null);
     setEditing(null);
@@ -525,17 +533,54 @@ export function App({ openStore, settingsStorage }: AppProps) {
     setEditing(null);
   };
 
+  const exploreDemo = async () => {
+    await openDemo();
+    navigate("app");
+  };
+  const saveSetup = (next: ProviderSettings) => {
+    saveSettings(next, settingsStorage);
+    setSettings(next);
+    navigate("app");
+  };
+
+  if (page === "welcome") {
+    return (
+      <Landing
+        demoReady={storage.status === "ready"}
+        onOpenDemo={() => void exploreDemo()}
+        onSetup={() => {
+          navigate("setup");
+        }}
+        onOpenApp={() => {
+          navigate("app");
+        }}
+      />
+    );
+  }
+  if (page === "setup") {
+    return (
+      <SetupPage
+        origin={window.location.origin}
+        systemPrompt={settings?.systemPrompt ?? ""}
+        onComplete={saveSetup}
+        onBack={() => {
+          navigate(settings === null ? "welcome" : "app");
+        }}
+        demoReady={storage.status === "ready"}
+        onOpenDemo={() => void exploreDemo()}
+        onSkip={() => {
+          navigate("app");
+        }}
+      />
+    );
+  }
+
   return (
     <div className="flex h-dvh flex-col">
       <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b px-4">
-        <div className="flex items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Network className="size-4" aria-hidden="true" />
-          </span>
-          <h1 className="font-heading text-base font-semibold tracking-tight">
-            diagram-4-llm
-          </h1>
-        </div>
+        <h1>
+          <Brand />
+        </h1>
         <div className="flex items-center gap-2">
           {settings !== null && (
             <Badge variant="secondary" className="hidden sm:inline-flex">
@@ -646,28 +691,13 @@ export function App({ openStore, settingsStorage }: AppProps) {
                     saveSettings(next, settingsStorage);
                     setSettings(next);
                     setShowSettings(false);
-                    setShowSetup(false);
                   }}
                   onCancel={() => {
                     setShowSettings(false);
                   }}
                   onStartSetup={() => {
                     setShowSettings(false);
-                    setShowSetup(true);
-                  }}
-                />
-              ) : showSetup ? (
-                <SetupWizard
-                  origin={window.location.origin}
-                  systemPrompt={settings?.systemPrompt ?? ""}
-                  onComplete={(next) => {
-                    saveSettings(next, settingsStorage);
-                    setSettings(next);
-                    setShowSetup(false);
-                  }}
-                  onOpenDemo={() => void openDemo()}
-                  onSkip={() => {
-                    setShowSetup(false);
+                    navigate("setup");
                   }}
                 />
               ) : graph === null ? (
@@ -698,7 +728,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
               )}
             </div>
 
-            {!showSettings && !showSetup && (
+            {!showSettings && (
               <div className="flex flex-col gap-3 border-t bg-background px-6 py-4">
                 {editing !== null && (
                   <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2 text-sm">
@@ -743,7 +773,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
                         variant="secondary"
                         size="sm"
                         onClick={() => {
-                          setShowSetup(true);
+                          navigate("setup");
                         }}
                       >
                         Connect a model

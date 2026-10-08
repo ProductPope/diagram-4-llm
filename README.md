@@ -67,8 +67,10 @@ pnpm --filter @diagram-4-llm/web dev   # run the web app locally
 
 ### Connecting a model
 
-On first start the app offers a setup assistant: choose a provider, test
-the connection and pick models from the ones it offers. The same settings
+On a first visit the app opens on a short welcome page, from which you can
+open a demo conversation without any setup, or start the setup assistant:
+choose a provider, test the connection and pick models from the ones it
+offers. The same settings
 can be changed later in **Settings**. The providers are:
 
 - **OpenAI-compatible** for a local server such as Ollama or LM Studio, or a

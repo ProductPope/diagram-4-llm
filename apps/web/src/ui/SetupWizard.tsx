@@ -12,14 +12,7 @@ import { Input } from "#components/ui/input";
 import { Label } from "#components/ui/label";
 import { NativeSelect, NativeSelectOption } from "#components/ui/native-select";
 import { Textarea } from "#components/ui/textarea";
-import {
-  CircleAlert,
-  CircleCheck,
-  Eye,
-  GitFork,
-  LoaderCircle,
-  Lock,
-} from "lucide-react";
+import { CircleAlert, CircleCheck, LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
@@ -29,7 +22,7 @@ import {
   type ProviderSettings,
 } from "../app/settings";
 
-type Step = "welcome" | "provider" | "connect" | "models";
+type Step = "provider" | "connect" | "models";
 type Choice = "anthropic" | "ollama" | "lm-studio" | "other";
 
 const CHOICES: readonly {
@@ -80,8 +73,8 @@ interface Props {
   /** Kept from the current settings; setup does not ask for it. */
   readonly systemPrompt: string;
   readonly onComplete: (settings: ProviderSettings) => void;
-  readonly onOpenDemo: () => void;
-  readonly onSkip: () => void;
+  /** Leaves setup from its first step. */
+  readonly onBack: () => void;
 }
 
 /**
@@ -93,10 +86,9 @@ export function SetupWizard({
   origin,
   systemPrompt,
   onComplete,
-  onOpenDemo,
-  onSkip,
+  onBack,
 }: Props) {
-  const [step, setStep] = useState<Step>("welcome");
+  const [step, setStep] = useState<Step>("provider");
   const [choice, setChoice] = useState<Choice>("anthropic");
   const [apiKey, setApiKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
@@ -181,52 +173,6 @@ export function SetupWizard({
     choice === "anthropic" ? apiKey.trim() !== "" : baseUrl.trim() !== "";
 
   switch (step) {
-    case "welcome":
-      return (
-        <WizardCard
-          title="Welcome"
-          description="Chat with an AI model and see the conversation as a map."
-          footer={
-            <>
-              <Button variant="ghost" onClick={onSkip}>
-                Skip for now
-              </Button>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={onOpenDemo}>
-                  Explore the demo
-                </Button>
-                <Button
-                  onClick={() => {
-                    setStep("provider");
-                  }}
-                >
-                  Connect a model
-                </Button>
-              </div>
-            </>
-          }
-        >
-          <ul className="flex flex-col gap-4 text-sm">
-            <Feature icon={<GitFork />} title="Branch at any message">
-              Try another question without losing the first one. Every branch
-              stays on the map.
-            </Feature>
-            <Feature icon={<Eye />} title="See what the model sees">
-              Before you send, check exactly which messages go to the model.
-              Other branches stay out unless you bring them in.
-            </Feature>
-            <Feature icon={<Lock />} title="Your data stays here">
-              Conversations and keys are kept in this browser. There is no
-              account and no server of ours in between.
-            </Feature>
-          </ul>
-          <p className="text-sm text-muted-foreground">
-            Not sure yet? The demo shows a branched conversation without
-            connecting anything.
-          </p>
-        </WizardCard>
-      );
-
     case "provider":
       return (
         <WizardCard
@@ -235,12 +181,7 @@ export function SetupWizard({
           description="You can change this later in Settings."
           footer={
             <>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setStep("welcome");
-                }}
-              >
+              <Button variant="ghost" onClick={onBack}>
                 Back
               </Button>
               <Button
@@ -556,31 +497,6 @@ function WizardCard({
       <CardContent className="flex flex-col gap-5 pt-5">{children}</CardContent>
       <CardFooter className="mt-5 justify-between gap-2">{footer}</CardFooter>
     </Card>
-  );
-}
-
-function Feature({
-  icon,
-  title,
-  children,
-}: {
-  readonly icon: ReactNode;
-  readonly title: string;
-  readonly children: ReactNode;
-}) {
-  return (
-    <li className="flex gap-3">
-      <span
-        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted [&_svg]:size-4"
-        aria-hidden="true"
-      >
-        {icon}
-      </span>
-      <span className="flex flex-col gap-0.5">
-        <span className="font-medium">{title}</span>
-        <span className="text-muted-foreground">{children}</span>
-      </span>
-    </li>
   );
 }
 

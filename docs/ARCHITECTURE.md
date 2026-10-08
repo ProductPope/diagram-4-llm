@@ -305,15 +305,24 @@ Browser-specific constraints:
   takes focus when editing a message starts.
 - **Context inspector:** the assembled messages, their sources and the
   token estimate, available before sending and stored with each answer.
-- **Setup:** until a provider is configured, the app opens on a setup
-  assistant (`apps/web/src/ui/SetupWizard.tsx`): choose a provider, enter a
-  key or a server address, test the connection, and pick models from the
-  ones the provider lists (`GET /v1/models` on both APIs). The connection
-  test is the only request setup makes, and it goes only to the chosen
-  provider. Titles stay off unless chosen. Setup can be skipped; it is
-  offered again on the next visit, and from Settings and the composer at any
-  time. The demo conversation (`apps/web/src/app/demo.ts`) can be opened
-  without a provider; its answers are labelled as written by hand.
+- **Pages:** the URL fragment selects the page (`#/welcome`, `#/setup`,
+  `#/app`), so a static host serves every page from one file. A first
+  visit without a fragment shows the welcome page; once the app has been
+  used, or a provider is configured, the bare address opens the app.
+- **Welcome page** (`apps/web/src/ui/Landing.tsx`): written as a
+  conversation with the app, whose exchanges appear as they scroll into
+  view (all at once when the user prefers reduced motion). It describes
+  only what the app does today, labels planned work as planned, and
+  states where data goes. It leads to the demo, to setup or to the app.
+- **Setup** (`apps/web/src/ui/SetupPage.tsx`, `SetupWizard.tsx`): a page
+  of its own, with the demo and "Skip for now" on every step. Choose a
+  provider, enter a key or a server address, test the connection, and
+  pick models from the ones the provider lists (`GET /v1/models` on both
+  APIs). The connection test is the only request setup makes, and it goes
+  only to the chosen provider. Titles stay off unless chosen. Setup can be
+  reopened from Settings and from the composer. The demo conversation
+  (`apps/web/src/app/demo.ts`) can be opened without a provider; its
+  answers are labelled as written by hand.
 
 Performance budget: an end-to-end test imports a generated conversation of
 1,000 turns and requires the first render within 3 s and a branch switch

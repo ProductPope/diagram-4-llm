@@ -14,7 +14,7 @@ test("renames and deletes conversations, and a deleted one stays deleted", async
   await page.route(ENDPOINT, (route) => answerEveryRequest(route, sent));
   // A controllable clock, so the test can hold back the delayed save below.
   await page.clock.install();
-  await page.goto("/");
+  await page.goto("/#/app");
   await configureProvider(page);
 
   const input = page.getByLabel("Message", { exact: true });

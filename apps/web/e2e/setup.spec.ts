@@ -42,8 +42,11 @@ test("sets up a local model from the models the server offers, then chats", asyn
   await page.route(ENDPOINT, (route) => answerEveryRequest(route, sent));
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Welcome" })).toBeVisible();
+  // New visitors land on the welcome page and start setup from there.
   await page.getByRole("button", { name: "Connect a model" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Where should answers come from?" }),
+  ).toBeVisible();
   await page.getByRole("radio", { name: /^Ollama/ }).check();
   await page.getByRole("button", { name: "Continue" }).click();
 

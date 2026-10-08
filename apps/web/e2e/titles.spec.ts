@@ -13,7 +13,7 @@ test("titles answers on the map with the model chosen for titles", async ({
         : `Answer to: ${lastMessage}`,
     ),
   );
-  await page.goto("/");
+  await page.goto("/#/app");
   await page.getByRole("button", { name: "Settings" }).click();
   await page.getByLabel(/^Models/).fill("test-model");
   await page.getByLabel("Model for node titles (optional)").fill("title-model");
@@ -51,7 +51,7 @@ test("shows the start of the answer when no title model is set", async ({
 }) => {
   const sent: SentMessage[][] = [];
   await page.route(ENDPOINT, (route) => answerEveryRequest(route, sent));
-  await page.goto("/");
+  await page.goto("/#/app");
   await page.getByRole("button", { name: "Settings" }).click();
   await page.getByLabel(/^Models/).fill("test-model");
   await page.getByRole("button", { name: "Save" }).click();

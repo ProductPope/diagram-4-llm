@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, expect, it } from "vitest";
 
@@ -27,7 +27,23 @@ globalThis.ResizeObserver = class {
   }
 };
 
-it("offers setup first, and asks for a provider before sending if it is skipped", async () => {
+it("welcomes a new visitor before showing the app", async () => {
+  window.location.hash = "";
+  render(
+    <App
+      openStore={() => openConversationStore(new IDBFactory())}
+      settingsStorage={localStorage}
+    />,
+  );
+
+  expect(
+    await screen.findByRole("heading", { name: "What is this?" }),
+  ).toBeDefined();
+  expect(screen.getByRole("button", { name: "Connect a model" })).toBeDefined();
+});
+
+it("starts the app with no conversations and asks for a provider before sending", async () => {
+  window.location.hash = "#/app";
   render(
     <App
       openStore={() => openConversationStore(new IDBFactory())}
@@ -36,8 +52,6 @@ it("offers setup first, and asks for a provider before sending if it is skipped"
   );
 
   expect(await screen.findByText("No conversations yet.")).toBeDefined();
-  expect(screen.getByRole("heading", { name: "Welcome" })).toBeDefined();
-  fireEvent.click(screen.getByRole("button", { name: "Skip for now" }));
   expect(
     screen.getByText("Configure a provider in Settings before sending."),
   ).toBeDefined();
