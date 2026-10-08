@@ -578,6 +578,9 @@ export function App({ openStore, settingsStorage }: AppProps) {
     setCurrent(null);
     setAnchor(null);
     setEditing(null);
+    // Without a provider nothing can be sent, so the settings come first.
+    // Saving them closes the form onto the new conversation.
+    if (settings === null) setShowSettings(true);
   };
 
   // The button that was pressed disappears, so focus moves to the one that
