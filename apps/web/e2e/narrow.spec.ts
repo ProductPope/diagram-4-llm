@@ -33,6 +33,10 @@ test("every page fits 320 pixels wide", async ({ page }) => {
   await expect(page.getByLabel("Message", { exact: true })).toBeVisible();
   await expectNoHorizontalScroll(page);
 
+  await page.goto("/#/features");
+  await expect(page.getByRole("heading", { name: "Features" })).toBeVisible();
+  await expectNoHorizontalScroll(page);
+
   await page.goto("/#/session");
   const picker = page.getByLabel("Open a session transcript");
   await expect(
