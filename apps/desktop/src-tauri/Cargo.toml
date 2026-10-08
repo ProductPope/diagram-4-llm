@@ -1,0 +1,27 @@
+[package]
+name = "diagram-4-llm"
+version = "0.0.0"
+description = "Branching LLM conversations on a canvas, as a desktop app"
+license = "MIT"
+edition = "2021"
+publish = false
+
+[lib]
+# The library name differs from the binary's so that Cargo can build both
+# on Windows (https://github.com/rust-lang/cargo/issues/8519).
+name = "diagram_4_llm_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+keyring = "4"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

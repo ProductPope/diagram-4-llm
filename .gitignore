@@ -4,3 +4,5 @@ coverage/
 *.tsbuildinfo
 test-results/
 playwright-report/
+# Rust build output of the desktop app
+target/

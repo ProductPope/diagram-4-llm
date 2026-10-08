@@ -1,4 +1,4 @@
-import type { ProviderErrorInfo, Result } from "@diagram-4-llm/core";
+import { ok, type ProviderErrorInfo, type Result } from "@diagram-4-llm/core";
 import { z } from "zod";
 
 import {
@@ -53,18 +53,35 @@ export type ProviderSettings = z.infer<typeof settingsSchema>;
 const STORAGE_KEY = "diagram-4-llm.provider-settings";
 
 /**
+ * Where the API key is kept apart from the other settings: the operating
+ * system's keychain in the desktop app (ADR 0014). A browser has no such
+ * store, so there the key is saved with the other settings.
+ */
+export interface KeyStore {
+  /** The key saved last, or null when none is saved. */
+  readonly key: () => string | null;
+  readonly save: (key: string) => Promise<Result<void, string>>;
+  /** Why the saved key could not be read when the app started. */
+  readonly problem: string | null;
+}
+
+/**
  * Reads the saved provider settings. Settings that are missing, unreadable or
  * no longer valid count as not configured, so the user is asked again
  * instead of the app sending requests with half a configuration.
  */
 export function loadSettings(
   storage: Storage = localStorage,
+  keyStore: KeyStore | null = null,
 ): ProviderSettings | null {
   const raw = storage.getItem(STORAGE_KEY);
   if (raw === null) return null;
   try {
+    const saved = upgradeSavedSettings(JSON.parse(raw));
     const parsed = settingsSchema.safeParse(
-      upgradeSavedSettings(JSON.parse(raw)),
+      keyStore === null || typeof saved !== "object" || saved === null
+        ? saved
+        : { ...saved, apiKey: keyStore.key() ?? "" },
     );
     return parsed.success ? parsed.data : null;
   } catch {
@@ -72,11 +89,28 @@ export function loadSettings(
   }
 }
 
-export function saveSettings(
+/**
+ * Saves the settings, the API key in the key store when there is one. If the
+ * key cannot be saved, nothing is, so that the settings saved before still
+ * match the key saved with them.
+ */
+export async function saveSettings(
   settings: ProviderSettings,
   storage: Storage = localStorage,
-): void {
-  storage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  keyStore: KeyStore | null = null,
+): Promise<Result<void, string>> {
+  if (keyStore === null) {
+    storage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    return ok(undefined);
+  }
+  const saved = await keyStore.save(settings.apiKey);
+  if (!saved.ok) return saved;
+  // JSON leaves out undefined values, so the key is not written.
+  storage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({ ...settings, apiKey: undefined }),
+  );
+  return ok(undefined);
 }
 
 export function createAdapter(settings: ProviderSettings): ProviderAdapter {

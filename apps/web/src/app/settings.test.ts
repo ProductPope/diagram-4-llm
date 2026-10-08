@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { err, ok } from "@diagram-4-llm/core";
+
 import {
   loadSettings,
   parseModelList,
   saveSettings,
+  type KeyStore,
   type ProviderSettings,
 } from "./settings";
 
@@ -28,7 +31,7 @@ function memoryStorage(): Storage {
 }
 
 describe("provider settings", () => {
-  it("round-trips saved settings", () => {
+  it("round-trips saved settings", async () => {
     const storage = memoryStorage();
     const settings: ProviderSettings = {
       adapter: "openai-compatible",
@@ -37,11 +40,11 @@ describe("provider settings", () => {
       models: ["llama3", "qwen3"],
       systemPrompt: "",
     };
-    saveSettings(settings, storage);
+    await saveSettings(settings, storage);
     expect(loadSettings(storage)).toEqual(settings);
   });
 
-  it("round-trips a model for node titles", () => {
+  it("round-trips a model for node titles", async () => {
     const storage = memoryStorage();
     const settings: ProviderSettings = {
       adapter: "anthropic",
@@ -50,11 +53,11 @@ describe("provider settings", () => {
       titleModel: "claude-haiku-4-5",
       systemPrompt: "",
     };
-    saveSettings(settings, storage);
+    await saveSettings(settings, storage);
     expect(loadSettings(storage)).toEqual(settings);
   });
 
-  it("round-trips a model for suggested branches", () => {
+  it("round-trips a model for suggested branches", async () => {
     const storage = memoryStorage();
     const settings: ProviderSettings = {
       adapter: "openai-compatible",
@@ -64,11 +67,11 @@ describe("provider settings", () => {
       suggestionModel: "qwen3",
       systemPrompt: "",
     };
-    saveSettings(settings, storage);
+    await saveSettings(settings, storage);
     expect(loadSettings(storage)).toEqual(settings);
   });
 
-  it("round-trips context windows of models", () => {
+  it("round-trips context windows of models", async () => {
     const storage = memoryStorage();
     const settings: ProviderSettings = {
       adapter: "openai-compatible",
@@ -78,7 +81,7 @@ describe("provider settings", () => {
       contextWindows: { llama3: 8192 },
       systemPrompt: "",
     };
-    saveSettings(settings, storage);
+    await saveSettings(settings, storage);
     expect(loadSettings(storage)).toEqual(settings);
   });
 
@@ -132,4 +135,69 @@ describe("provider settings", () => {
     );
     expect(loadSettings(storage)).toBeNull();
   });
+
+  it("keeps the API key in the key store, apart from the settings", async () => {
+    const storage = memoryStorage();
+    const keyStore = memoryKeyStore();
+    const settings: ProviderSettings = {
+      adapter: "anthropic",
+      apiKey: "sk-secret",
+      models: ["claude-sonnet-5-5"],
+      systemPrompt: "",
+    };
+    expect(await saveSettings(settings, storage, keyStore)).toEqual(
+      ok(undefined),
+    );
+    expect(keyStore.key()).toBe("sk-secret");
+    expect(storage.getItem("diagram-4-llm.provider-settings")).not.toContain(
+      "sk-secret",
+    );
+    expect(loadSettings(storage, keyStore)).toEqual(settings);
+  });
+
+  it("saves nothing when the key store fails", async () => {
+    const storage = memoryStorage();
+    const keyStore: KeyStore = {
+      key: () => null,
+      save: () => Promise.resolve(err("The keychain is locked.")),
+      problem: null,
+    };
+    const settings: ProviderSettings = {
+      adapter: "anthropic",
+      apiKey: "sk-secret",
+      models: ["claude-sonnet-5-5"],
+      systemPrompt: "",
+    };
+    expect(await saveSettings(settings, storage, keyStore)).toEqual(
+      err("The keychain is locked."),
+    );
+    expect(storage.length).toBe(0);
+  });
+
+  it("asks again for an Anthropic key the key store no longer has", async () => {
+    const storage = memoryStorage();
+    await saveSettings(
+      {
+        adapter: "anthropic",
+        apiKey: "sk-secret",
+        models: ["claude-sonnet-5-5"],
+        systemPrompt: "",
+      },
+      storage,
+      memoryKeyStore(),
+    );
+    expect(loadSettings(storage, memoryKeyStore())).toBeNull();
+  });
 });
+
+function memoryKeyStore(): KeyStore {
+  let key: string | null = null;
+  return {
+    key: () => key,
+    save: (next) => {
+      key = next === "" ? null : next;
+      return Promise.resolve(ok(undefined));
+    },
+    problem: null,
+  };
+}

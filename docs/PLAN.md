@@ -234,6 +234,10 @@ based on observed use. Each one runs on the user's device:
       page as a read-only map per conversation, with a list to switch
       between them, kept only while the page is open
       ([ADR 0013](adr/0013-claude-ai-export-map.md))
+- [x] Desktop app, first part (`apps/desktop`): the web app in a Tauri
+      window, with the API key in the operating system's keychain
+      ([ADR 0014](adr/0014-desktop-app-keychain.md)). No CORS setup and
+      reading session logs without picking files are still to come.
 
 ## 7. Success criteria
 

@@ -71,13 +71,14 @@ pnpm e2e     # end-to-end tests against the production build (Playwright)
 pnpm --filter @diagram-4-llm/web dev   # run the web app locally
 ```
 
-The code is in three packages:
+The code is in four packages:
 
 | Path                             | Contents                                                                                |
 | -------------------------------- | --------------------------------------------------------------------------------------- |
 | [`packages/core`](packages/core) | Graph model, invariants, context assembly and data format. Pure TypeScript, no I/O.     |
 | [`apps/web`](apps/web)           | Browser app: chat, branching, context inspector, provider adapters and storage.         |
 | [`packages/mcp`](packages/mcp)   | Local MCP server that lets agents read exported conversations and Claude Code sessions. |
+| [`apps/desktop`](apps/desktop)   | Desktop app: the web app in a Tauri window, with the API key in the system keychain.    |
 
 ### Connecting a model
 
@@ -106,6 +107,29 @@ The API key is stored in your browser's local storage and sent only to the
 provider you configure. Any script running on the page could read it; the
 app loads no third-party scripts and ships a strict Content Security Policy
 to keep it that way.
+
+### Desktop app
+
+The desktop app keeps the API key in the operating system's keychain
+(Keychain on macOS, Credential Manager on Windows, the Secret Service on
+Linux) instead of the page's storage. It needs Rust and the
+[Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your
+system. Builds are not signed.
+
+```sh
+pnpm --filter @diagram-4-llm/desktop tauri dev     # run it against the web dev server
+pnpm --filter @diagram-4-llm/desktop tauri build   # build an installer for this system
+```
+
+Its end-to-end test runs on Linux against a debug build, with
+`tauri-driver` (`cargo install tauri-driver --locked`), WebKitWebDriver,
+gnome-keyring, `secret-tool` and Xvfb installed:
+
+```sh
+pnpm --filter @diagram-4-llm/desktop tauri build --debug --no-bundle
+DESKTOP_APP=$PWD/apps/desktop/src-tauri/target/debug/diagram-4-llm \
+  pnpm --filter @diagram-4-llm/desktop e2e
+```
 
 ### Tests
 

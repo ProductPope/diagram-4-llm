@@ -461,7 +461,9 @@ page. The mitigations are:
   security advisories, and weekly update pull requests from Dependabot for
   packages and the SHA-pinned workflow actions.
 
-Phase 3 desktop packaging moves keys to the operating system keychain.
+The desktop app (`apps/desktop`) keeps the API key in the operating
+system's keychain instead, and the page's storage holds the other settings
+only ([ADR 0014](adr/0014-desktop-app-keychain.md)).
 
 ## 8. Testing strategy
 
