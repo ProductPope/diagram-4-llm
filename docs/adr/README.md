@@ -15,6 +15,7 @@ supersedes the old one.
 | [0006](0006-record-stop-reason.md)       | Record why a complete answer ended                                        | Accepted |
 | [0007](0007-design-system.md)            | shadcn/ui on Tailwind CSS for everything except the map                   | Accepted |
 | [0008](0008-generating-summaries.md)     | Summaries are generated from a transcript and saved only when finished    | Proposed |
+| [0009](0009-claude-code-session-map.md)  | Claude Code sessions are read into a separate, read-only map              | Proposed |
 
 Records move from Proposed to Accepted when phase 0 implementation confirms
 them.

@@ -32,6 +32,27 @@ test("every page fits 320 pixels wide", async ({ page }) => {
   await page.goto("/#/app");
   await expect(page.getByLabel("Message", { exact: true })).toBeVisible();
   await expectNoHorizontalScroll(page);
+
+  await page.goto("/#/session");
+  const picker = page.getByLabel("Open a session transcript");
+  await expect(
+    page.getByRole("heading", { name: "Map of a Claude Code session" }),
+  ).toBeVisible();
+  await expectNoHorizontalScroll(page);
+  await picker.setInputFiles({
+    name: "session.jsonl",
+    mimeType: "application/jsonl",
+    buffer: Buffer.from(
+      JSON.stringify({
+        type: "user",
+        uuid: "p1",
+        parentUuid: null,
+        message: { role: "user", content: "A prompt" },
+      }),
+    ),
+  });
+  await expect(page.getByRole("region", { name: "Session map" })).toBeVisible();
+  await expectNoHorizontalScroll(page);
 });
 
 test("shows one view at a time on a narrow screen", async ({ page }) => {

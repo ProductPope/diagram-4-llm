@@ -26,6 +26,7 @@ import { cn } from "#lib/utils";
 import {
   CircleAlert,
   Download,
+  FileText,
   GitFork,
   MessageSquarePlus,
   PanelRightClose,
@@ -61,7 +62,7 @@ import {
 } from "../app/settings";
 import { defaultRoute } from "../app/route";
 import { navigate, useRoute } from "../app/useRoute";
-import { useMediaQuery } from "../app/useMediaQuery";
+import { NARROW_SCREEN, useMediaQuery } from "../app/useMediaQuery";
 import { useStoreValue } from "../app/useStoreValue";
 import {
   generateAnswer,
@@ -91,6 +92,7 @@ import { SettingsForm } from "./SettingsForm";
 import { Brand } from "./Brand";
 import { BranchStrip } from "./BranchStrip";
 import { Landing } from "./Landing";
+import { SessionPage } from "./SessionPage";
 import { SetupPage } from "./SetupPage";
 
 export interface AppProps {
@@ -122,14 +124,6 @@ const env: Environment = {
 const SAVE_DELAY_MS = 300;
 const USED_APP_KEY = "diagram-4-llm.used-app";
 const MAP_MINIMIZED_KEY = "diagram-4-llm.map-minimized";
-
-/**
- * Below this width the sidebar, the conversation and the map cannot all have
- * their minimum widths (180, 360 and 240 pixels), so one is shown at a time.
- * WCAG 1.4.10 asks for the app to work 320 pixels wide, which is what a
- * 1280-pixel window shows at 400% zoom.
- */
-const NARROW_SCREEN = "(width < 50rem)";
 
 type View = "list" | "conversation" | "map";
 
@@ -887,6 +881,15 @@ export function App({ openStore, settingsStorage }: AppProps) {
       />
     );
   }
+  if (page === "session") {
+    return (
+      <SessionPage
+        onBack={() => {
+          navigate("app");
+        }}
+      />
+    );
+  }
   if (page === "setup") {
     return (
       <SetupPage
@@ -954,6 +957,16 @@ export function App({ openStore, settingsStorage }: AppProps) {
       >
         <Sparkles aria-hidden="true" />
         Open the demo
+      </Button>
+      <Button
+        variant="ghost"
+        className="justify-start"
+        onClick={() => {
+          navigate("session");
+        }}
+      >
+        <FileText aria-hidden="true" />
+        Map a Claude Code session
       </Button>
       <p className="px-1 text-xs text-muted-foreground" role="status">
         {saveStateText(saveState)}

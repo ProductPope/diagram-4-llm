@@ -266,7 +266,7 @@ const BRANCH_TAIL = 6;
  * mounts while its panel is still growing, and the first fit would leave
  * part of the tree outside.
  */
-function FollowBranch({
+export function FollowBranch({
   total,
   branchIds,
 }: {
@@ -303,7 +303,7 @@ const KEY_DIRECTIONS: Readonly<Record<string, Direction>> = {
  * the view on it. The browser must not scroll to the focused element
  * itself: the map's viewport is a transform, not a scroll position.
  */
-function FocusAfterKeyboardMove({
+export function FocusAfterKeyboardMove({
   move,
 }: {
   readonly move: { readonly id: NodeId; readonly position: Point } | null;

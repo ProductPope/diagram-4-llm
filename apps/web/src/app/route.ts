@@ -2,9 +2,9 @@
  * The app's pages, addressed by the URL fragment (`#/setup`) so a static
  * host serves every page from the same file.
  */
-export type Route = "welcome" | "setup" | "app";
+export type Route = "welcome" | "setup" | "app" | "session";
 
-const ROUTES: readonly Route[] = ["welcome", "setup", "app"];
+const ROUTES: readonly Route[] = ["welcome", "setup", "app", "session"];
 
 /** The page a fragment names, or null for an empty or unknown fragment. */
 export function parseRoute(hash: string): Route | null {

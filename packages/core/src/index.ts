@@ -41,3 +41,11 @@ export {
   FORMAT_VERSION,
   importConversation,
 } from "./format.js";
+export type {
+  ActivityItem,
+  ClaudeCodeSession,
+  SessionProblem,
+  SessionReadError,
+  SessionStep,
+} from "./claude-code.js";
+export { readClaudeCodeSession } from "./claude-code.js";

@@ -7,6 +7,7 @@ describe("routes", () => {
     expect(parseRoute("#/welcome")).toBe("welcome");
     expect(parseRoute("#/setup")).toBe("setup");
     expect(parseRoute("#/app")).toBe("app");
+    expect(parseRoute("#/session")).toBe("session");
     expect(parseRoute("#app")).toBe("app");
   });
 
@@ -17,7 +18,7 @@ describe("routes", () => {
   });
 
   it("writes fragments that read back as the same page", () => {
-    for (const route of ["welcome", "setup", "app"] as const) {
+    for (const route of ["welcome", "setup", "app", "session"] as const) {
       expect(parseRoute(routeHash(route))).toBe(route);
     }
   });

@@ -209,6 +209,14 @@ based on observed use. Each one runs on the user's device:
 6. Desktop packaging (Tauri) for OS keychain storage, no CORS setup and
    reading session logs without the user picking files.
 
+**Progress** (updated with each merged change):
+
+- [x] Map of Claude Code sessions: a session transcript opened from
+      `~/.claude/projects` is shown as a read-only map of prompts, the
+      work done for each (answers and tool calls with their results) and
+      compactions, kept only while the page is open
+      ([ADR 0009](adr/0009-claude-code-session-map.md))
+
 ## 7. Success criteria
 
 - Phase 1: two-week dogfooding period completed (see exit criterion).
