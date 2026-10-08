@@ -15,6 +15,8 @@ import type { ProviderAdapter } from "../providers/types";
 const modelList = z.array(z.string().min(1)).min(1);
 /** Titles map nodes when set; without it nodes show the start of a message. */
 const titleModel = z.exactOptional(z.string().min(1));
+/** Suggests follow-up questions under answers when set; off without it. */
+const suggestionModel = z.exactOptional(z.string().min(1));
 /**
  * Context window in tokens of the models the user gave one for. Providers
  * do not report it in a form common to both APIs, so the user enters it;
@@ -30,6 +32,7 @@ const settingsSchema = z.discriminatedUnion("adapter", [
     apiKey: z.string().min(1),
     models: modelList,
     titleModel,
+    suggestionModel,
     contextWindows,
     systemPrompt: z.string(),
   }),
@@ -39,6 +42,7 @@ const settingsSchema = z.discriminatedUnion("adapter", [
     apiKey: z.string(),
     models: modelList,
     titleModel,
+    suggestionModel,
     contextWindows,
     systemPrompt: z.string(),
   }),

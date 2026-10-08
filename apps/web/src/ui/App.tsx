@@ -72,6 +72,7 @@ import {
 import { uuidv7 } from "../chat/ids";
 import { createStore, type Store } from "../chat/store";
 import { summarise } from "../chat/summary";
+import { suggestFollowUps } from "../chat/suggestions";
 import { titleAnswer } from "../chat/title";
 import {
   describeStorageError,
@@ -176,6 +177,11 @@ export function App({ openStore, settingsStorage }: AppProps) {
   const [pendingSummary, setPendingSummary] = useState<PendingSummary | null>(
     null,
   );
+  // Follow-up questions proposed for answers. They are suggestions, not
+  // part of the conversation, so they are kept only while the page is open.
+  const [suggestions, setSuggestions] = useState<
+    ReadonlyMap<NodeId, readonly string[]>
+  >(() => new Map());
   const [controller, setController] = useState<AbortController | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [modelChoice, setModelChoice] = useState<string | null>(null);
@@ -398,6 +404,52 @@ export function App({ openStore, settingsStorage }: AppProps) {
       );
   };
 
+  // Runs as part of a task like addTitle, so Stop cancels it too.
+  const addSuggestions = async (
+    store: Store<ConversationGraph>,
+    answerId: NodeId,
+    adapter: GenerationSettings["adapter"],
+    suggestionModel: string | undefined,
+    signal: AbortSignal,
+  ) => {
+    if (suggestionModel === undefined) return;
+    const suggested = await suggestFollowUps(
+      store.get(),
+      answerId,
+      adapter,
+      suggestionModel,
+      signal,
+    );
+    if (!suggested.ok) {
+      setError(
+        `Follow-up questions could not be suggested: ${suggested.error.message}`,
+      );
+      return;
+    }
+    const list = suggested.value;
+    if (list !== null)
+      setSuggestions((previous) => new Map(previous).set(answerId, list));
+  };
+
+  // What follows a finished answer: its title, then suggested follow-ups,
+  // each only when a model is chosen for it.
+  const afterAnswer = async (
+    store: Store<ConversationGraph>,
+    answerId: NodeId,
+    configured: ProviderSettings,
+    adapter: GenerationSettings["adapter"],
+    signal: AbortSignal,
+  ) => {
+    await addTitle(store, answerId, adapter, configured.titleModel, signal);
+    await addSuggestions(
+      store,
+      answerId,
+      adapter,
+      configured.suggestionModel,
+      signal,
+    );
+  };
+
   const send = (content: string) => {
     if (settings === null || parentId === undefined) return;
     let target = current;
@@ -431,11 +483,11 @@ export function App({ openStore, settingsStorage }: AppProps) {
         signal,
       );
       if (sent.ok)
-        await addTitle(
+        await afterAnswer(
           store,
           sent.value.assistantTurnId,
+          settings,
           answerSettings.adapter,
-          settings.titleModel,
           signal,
         );
       return sent;
@@ -456,11 +508,11 @@ export function App({ openStore, settingsStorage }: AppProps) {
         signal,
       );
       if (answered.ok)
-        await addTitle(
+        await afterAnswer(
           store,
           answered.value,
+          settings,
           answerSettings.adapter,
-          settings.titleModel,
           signal,
         );
       return answered;
@@ -557,13 +609,77 @@ export function App({ openStore, settingsStorage }: AppProps) {
 
   // The new message continues from the answer, so the model sees the
   // branch up to that answer and nothing that came after it.
-  const startBranch = (answerId: NodeId) => {
+  const startBranch = (answerId: NodeId, content = "") => {
     setView("conversation");
     setAnchor(answerId);
-    setEditing({ kind: "branch", parentId: answerId, content: "" });
-    setDraft("");
+    setEditing({ kind: "branch", parentId: answerId, content });
+    setDraft(content);
     setComposerKey((key) => key + 1);
   };
+
+  const suggestFor = (answerId: NodeId) => {
+    if (settings === null || current === null) return;
+    const store = current;
+    const configured = settings;
+    const adapter = generation(settings).adapter;
+    run(async (signal) => {
+      await addSuggestions(
+        store,
+        answerId,
+        adapter,
+        configured.suggestionModel,
+        signal,
+      );
+      return { ok: true };
+    });
+  };
+
+  // Each suggestion becomes its own branch from the answer, sent one after
+  // another. Stop ends the one being answered and sends no more.
+  const sendSuggestions = (answerId: NodeId, texts: readonly string[]) => {
+    if (settings === null || current === null) return;
+    const store = current;
+    const configured = settings;
+    const answerSettings = generation(settings);
+    setAnchor(answerId);
+    run(async (signal) => {
+      for (const content of texts) {
+        if (signal.aborted) break;
+        const sent = await sendMessage(
+          store,
+          { parentId: answerId, refs: [], content },
+          answerSettings,
+          env,
+          signal,
+        );
+        if (!sent.ok) return sent;
+        await afterAnswer(
+          store,
+          sent.value.assistantTurnId,
+          configured,
+          answerSettings.adapter,
+          signal,
+        );
+      }
+      return { ok: true };
+    });
+  };
+
+  // What sending each text as a branch from the answer would cost: the
+  // branch is sent again with each of them.
+  const estimateSuggestions = (answerId: NodeId, texts: readonly string[]) =>
+    graph === null
+      ? 0
+      : texts.reduce((total, content) => {
+          const context = assembleContext(
+            graph,
+            { parentId: answerId, refs: [], content },
+            { systemPrompt },
+          );
+          return context.ok
+            ? total + context.value.manifest.estimatedInputTokens
+            : total;
+        }, 0);
 
   // A first message continues nothing, so the model sees only the message
   // and what is attached to it, such as summaries of the branches it
@@ -938,6 +1054,17 @@ export function App({ openStore, settingsStorage }: AppProps) {
               }
               pendingSummary={pendingSummary}
               onReviseSummary={reviseSummary}
+              suggestions={suggestions}
+              onSuggest={
+                settings?.suggestionModel === undefined ? undefined : suggestFor
+              }
+              onChooseSuggestion={(answerId, text) => {
+                if (!busy) startBranch(answerId, text);
+              }}
+              estimateSuggestions={estimateSuggestions}
+              onSendSuggestions={(answerId, texts) => {
+                if (!busy) sendSuggestions(answerId, texts);
+              }}
               attached={refs}
               onToggleReference={(id) => {
                 setRefs((previous) => toggleReference(previous, id));

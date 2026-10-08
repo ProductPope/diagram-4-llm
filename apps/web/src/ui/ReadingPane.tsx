@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Paperclip,
   Pencil,
+  Lightbulb,
   RotateCcw,
   ScrollText,
 } from "lucide-react";
@@ -26,6 +27,7 @@ import { siblingsOf } from "../app/branch";
 import { labelOf } from "../app/label";
 import { currentSummaries } from "../app/summaries";
 import { MarkdownContent } from "./MarkdownContent";
+import { SuggestedBranches } from "./SuggestedBranches";
 import { SummaryCard } from "./SummaryCard";
 
 interface Props {
@@ -45,6 +47,19 @@ interface Props {
     readonly text: string;
   } | null;
   readonly onReviseSummary: (summary: SummaryNode, content: string) => void;
+  /** Follow-up questions proposed for answers, by answer. */
+  readonly suggestions: ReadonlyMap<NodeId, readonly string[]>;
+  /** Asks for follow-up questions; absent without a model for them. */
+  readonly onSuggest: ((answerId: NodeId) => void) | undefined;
+  readonly onChooseSuggestion: (answerId: NodeId, text: string) => void;
+  readonly estimateSuggestions: (
+    answerId: NodeId,
+    texts: readonly string[],
+  ) => number;
+  readonly onSendSuggestions: (
+    answerId: NodeId,
+    texts: readonly string[],
+  ) => void;
   /** Nodes attached to the message being written. */
   readonly attached: readonly NodeId[];
   readonly onToggleReference: (id: NodeId) => void;
@@ -78,6 +93,11 @@ export function ReadingPane({
   onSummarise,
   pendingSummary,
   onReviseSummary,
+  suggestions,
+  onSuggest,
+  onChooseSuggestion,
+  estimateSuggestions,
+  onSendSuggestions,
   attached,
   onToggleReference,
   reveal,
@@ -235,6 +255,22 @@ export function ReadingPane({
                     Summarise
                   </Button>
                 )}
+              {!busy &&
+                turn.kind === "assistant" &&
+                turn.status === "complete" &&
+                onSuggest !== undefined &&
+                !suggestions.has(turn.id) && (
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => {
+                      onSuggest(turn.id);
+                    }}
+                  >
+                    <Lightbulb aria-hidden="true" />
+                    Suggest follow-ups
+                  </Button>
+                )}
             </header>
             {turn.kind === "assistant" ? (
               <div className="w-full">
@@ -254,6 +290,19 @@ export function ReadingPane({
               </>
             )}
             {turn.kind === "assistant" && <AnswerStatus turn={turn} />}
+            {turn.kind === "assistant" && suggestions.has(turn.id) && (
+              <SuggestedBranches
+                suggestions={suggestions.get(turn.id) ?? []}
+                busy={busy}
+                onChoose={(text) => {
+                  onChooseSuggestion(turn.id, text);
+                }}
+                estimate={(texts) => estimateSuggestions(turn.id, texts)}
+                onSendAll={(texts) => {
+                  onSendSuggestions(turn.id, texts);
+                }}
+              />
+            )}
             {summaries.get(turn.id)?.map((summary) => (
               <SummaryCard
                 key={summary.id}
