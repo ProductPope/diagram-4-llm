@@ -605,6 +605,7 @@ const FEATURES: readonly Feature[] = [
       "In the sidebar, choose “Map a Claude Code session”.",
       "Open a transcript from ~/.claude/projects/<project>/<session>.jsonl.",
       "Choose a step on the map to read its branch. The file is read in this tab only and nothing is saved.",
+      "With a model for node titles in Settings, “Detect topics” sends the start of each prompt on the branch to it and shows the topics as headings.",
     ],
     Art: SessionMapArt,
   },
