@@ -63,6 +63,7 @@ jobs:
         run: |
           cargo fmt --check
           cargo clippy --locked --all-targets -- -D warnings
+          cargo test --locked
       - run: pnpm --filter @diagram-4-llm/desktop e2e
         env:
           DESKTOP_APP: ${{ github.workspace }}/apps/desktop/src-tauri/target/debug/diagram-4-llm

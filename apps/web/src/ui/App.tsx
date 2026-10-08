@@ -903,6 +903,7 @@ export function App({ openStore, settingsStorage, desktop }: AppProps) {
     return (
       <SessionPage
         topicModel={sessionTopicModel(settings, serverFetch)}
+        sessionFolder={desktop?.sessionFolder ?? null}
         onBack={() => {
           navigate("app");
         }}

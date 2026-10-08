@@ -2,9 +2,15 @@
 //! API key is kept in the operating system's credential store rather than in
 //! the webview's storage, where any script running in the page could read it
 //! (ADR 0014). Requests to OpenAI-compatible servers go through the HTTP
-//! plugin, so that local servers need no CORS setup (ADR 0015).
+//! plugin, so that local servers need no CORS setup (ADR 0015). Claude Code
+//! sessions are listed and read from `~/.claude/projects` (ADR 0016).
+
+mod sessions;
+
+use std::path::PathBuf;
 
 use keyring::Entry;
+use tauri::Manager;
 
 /// The app's identifier, so that the entry is recognisable in the
 /// credential store's own viewer.
@@ -51,8 +57,28 @@ async fn save_api_key(key: String) -> Result<(), String> {
     .await
 }
 
-/// Credential stores can block, for example while the user unlocks them, so
-/// they are called on a thread for blocking work.
+/// Where Claude Code keeps its session transcripts.
+fn projects_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let home = app.path().home_dir().map_err(|error| error.to_string())?;
+    Ok(home.join(".claude").join("projects"))
+}
+
+#[tauri::command]
+async fn list_sessions(app: tauri::AppHandle) -> Result<sessions::SessionList, String> {
+    let dir = projects_dir(&app)?;
+    run_blocking(move || sessions::list(&dir)).await
+}
+
+/// Reads a transcript by its path relative to the projects folder.
+#[tauri::command]
+async fn read_session(app: tauri::AppHandle, path: String) -> Result<String, String> {
+    let dir = projects_dir(&app)?;
+    run_blocking(move || sessions::read(&dir, &path)).await
+}
+
+/// Credential stores can block, for example while the user unlocks them, and
+/// session folders can be large, so both are used on a thread for blocking
+/// work.
 async fn run_blocking<T: Send + 'static>(
     task: impl FnOnce() -> Result<T, String> + Send + 'static,
 ) -> Result<T, String> {
@@ -64,7 +90,12 @@ async fn run_blocking<T: Send + 'static>(
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_http::init())
-        .invoke_handler(tauri::generate_handler![load_api_key, save_api_key])
+        .invoke_handler(tauri::generate_handler![
+            load_api_key,
+            save_api_key,
+            list_sessions,
+            read_session
+        ])
         .run(tauri::generate_context!())
         .expect("the desktop app could not start");
 }

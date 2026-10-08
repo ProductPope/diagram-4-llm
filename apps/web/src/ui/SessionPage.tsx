@@ -15,16 +15,24 @@ import { Badge } from "#components/ui/badge";
 import { Button, buttonVariants } from "#components/ui/button";
 import { NativeSelect, NativeSelectOption } from "#components/ui/native-select";
 import { cn } from "#lib/utils";
-import { ArrowLeft, CircleAlert, FileText, Shapes } from "lucide-react";
+import {
+  ArrowLeft,
+  CircleAlert,
+  FileText,
+  History,
+  Shapes,
+} from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
   describeExportError,
   describeExportProblems,
   describeHiddenContent,
+  describeListProblems,
   describeNotShown,
   describeProblems,
   describeSessionError,
+  describeSize,
 } from "../app/session";
 import { NARROW_SCREEN, useMediaQuery } from "../app/useMediaQuery";
 import {
@@ -34,6 +42,7 @@ import {
   type TopicItem,
 } from "../chat/topics";
 import type { ProviderAdapter } from "../providers/types";
+import type { SessionFolder, SessionList } from "../storage/session-folder";
 import { Brand } from "./Brand";
 import { MarkdownContent } from "./MarkdownContent";
 import { SessionMap } from "./SessionMap";
@@ -48,6 +57,8 @@ export interface TopicModel {
 
 interface Props {
   readonly topicModel: TopicModel | null;
+  /** Claude Code's own folder of sessions, in the desktop app only. */
+  readonly sessionFolder: SessionFolder | null;
   readonly onBack: () => void;
 }
 
@@ -55,6 +66,11 @@ type Topics =
   | { readonly status: "none" }
   | { readonly status: "detecting" }
   | { readonly status: "detected"; readonly topics: readonly Topic[] }
+  | { readonly status: "failed"; readonly message: string };
+
+type Recent =
+  | { readonly status: "loading" }
+  | { readonly status: "loaded"; readonly list: SessionList }
   | { readonly status: "failed"; readonly message: string };
 
 /** One map: a Claude Code session, or one conversation of an export. */
@@ -77,17 +93,39 @@ interface Opened {
  * A Claude Code session transcript, or a conversation of a Claude.ai data
  * export, as a read-only map. The file is read in the browser and kept only
  * while the page is open: both can hold secrets, and the user already keeps
- * the file.
+ * the file. The desktop app also lists the sessions in Claude Code's folder.
  */
-export function SessionPage({ topicModel, onBack }: Props) {
+export function SessionPage({ topicModel, sessionFolder, onBack }: Props) {
   const [opened, setOpened] = useState<Opened | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [topics, setTopics] = useState<Topics>({ status: "none" });
   const detecting = useRef<AbortController | null>(null);
+  const [recent, setRecent] = useState<Recent>({ status: "loading" });
   const narrow = useMediaQuery(NARROW_SCREEN);
 
   useEffect(() => () => detecting.current?.abort(), []);
+
+  // Listed each time the list is shown, so that it includes sessions
+  // Claude Code has written since.
+  useEffect(() => {
+    if (sessionFolder === null || opened !== null) return;
+    let current = true;
+    void sessionFolder.list().then((listed) => {
+      if (!current) return;
+      setRecent(
+        listed.ok
+          ? { status: "loaded", list: listed.value }
+          : {
+              status: "failed",
+              message: `Claude Code's sessions could not be listed: ${listed.error}`,
+            },
+      );
+    });
+    return () => {
+      current = false;
+    };
+  }, [sessionFolder, opened]);
 
   const detect = async (items: readonly TopicItem[]) => {
     if (topicModel === null) return;
@@ -130,6 +168,17 @@ export function SessionPage({ topicModel, onBack }: Props) {
       : openTranscript(file.name, text);
     if (!read.ok) {
       setError(`${file.name} could not be opened: ${read.error}`);
+      return;
+    }
+    setError(null);
+    show(read.value, 0);
+  };
+
+  const openFromFolder = async (folder: SessionFolder, path: string) => {
+    const text = await folder.read(path);
+    const read = text.ok ? openTranscript(path, text.value) : text;
+    if (!read.ok) {
+      setError(`${path} could not be opened: ${read.error}`);
       return;
     }
     setError(null);
@@ -194,6 +243,12 @@ export function SessionPage({ topicModel, onBack }: Props) {
           </p>
           {picker}
           {error !== null && <ErrorNotice text={error} />}
+          {sessionFolder !== null && (
+            <RecentSessions
+              recent={recent}
+              onOpen={(path) => void openFromFolder(sessionFolder, path)}
+            />
+          )}
         </main>
       ) : (
         <Session
@@ -203,7 +258,27 @@ export function SessionPage({ topicModel, onBack }: Props) {
           onShowMap={(index) => {
             show(opened, index);
           }}
-          picker={picker}
+          picker={
+            sessionFolder === null ? (
+              picker
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    detecting.current?.abort();
+                    setError(null);
+                    setRecent({ status: "loading" });
+                    setOpened(null);
+                  }}
+                >
+                  <History aria-hidden="true" />
+                  Recent sessions
+                </Button>
+                {picker}
+              </div>
+            )
+          }
           error={error}
           narrow={narrow}
           topicModel={topicModel}
@@ -212,6 +287,66 @@ export function SessionPage({ topicModel, onBack }: Props) {
         />
       )}
     </div>
+  );
+}
+
+/** Claude Code's sessions, most recently changed first. */
+function RecentSessions({
+  recent,
+  onOpen,
+}: {
+  readonly recent: Recent;
+  readonly onOpen: (path: string) => void;
+}) {
+  const problems =
+    recent.status === "loaded"
+      ? describeListProblems(recent.list.problems)
+      : null;
+  return (
+    <section
+      aria-labelledby="recent-sessions"
+      className="flex w-full max-w-2xl flex-col gap-2"
+    >
+      <h3 id="recent-sessions" className="font-semibold">
+        Recent Claude Code sessions
+      </h3>
+      {recent.status === "loading" && (
+        <p className="text-sm text-muted-foreground">Listing sessions…</p>
+      )}
+      {recent.status === "failed" && <ErrorNotice text={recent.message} />}
+      {recent.status === "loaded" && (
+        <>
+          {problems !== null && <ErrorNotice text={problems} />}
+          {recent.list.sessions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              There are no sessions in <code>~/.claude/projects</code>.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {recent.list.sessions.map((session) => (
+                <li key={session.path}>
+                  <Button
+                    variant="ghost"
+                    className="h-auto w-full flex-col items-start gap-0.5 py-2 text-left"
+                    onClick={() => {
+                      onOpen(session.path);
+                    }}
+                  >
+                    <span className="font-mono text-xs break-all">
+                      {session.path}
+                    </span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {new Date(session.modified).toLocaleString()} ·{" "}
+                      {describeSize(session.bytes)}
+                    </span>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 

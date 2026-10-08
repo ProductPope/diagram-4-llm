@@ -2,6 +2,8 @@ import type { SessionStep } from "@diagram-4-llm/core";
 import { describe, expect, it } from "vitest";
 
 import {
+  describeListProblems,
+  describeSize,
   describeExportError,
   describeExportProblems,
   describeHiddenContent,
@@ -69,6 +71,19 @@ describe("session map helpers", () => {
     ).toMatch(
       /^2 lines could not be read and are not on the map\. The first, line 3/,
     );
+  });
+
+  it("describes entries of Claude Code's folder that could not be listed", () => {
+    expect(describeListProblems([])).toBeNull();
+    expect(describeListProblems(["a: denied", "b: denied"])).toBe(
+      "2 entries of Claude Code's folder could not be read; the sessions in it may be missing from the list. The first: a: denied",
+    );
+  });
+
+  it("describes file sizes in bytes, kilobytes or megabytes", () => {
+    expect(describeSize(900)).toBe("900 bytes");
+    expect(describeSize(1536)).toBe("2 KB");
+    expect(describeSize(5 * 1024 * 1024 + 100_000)).toBe("5.1 MB");
   });
 
   it("explains why a file could not be read", () => {

@@ -43,6 +43,6 @@ export async function openKeychain(invoke: Invoke): Promise<KeyStore> {
 }
 
 // The desktop app's commands reject with their error as a string.
-function messageOf(reason: unknown): string {
+export function messageOf(reason: unknown): string {
   return reason instanceof Error ? reason.message : String(reason);
 }

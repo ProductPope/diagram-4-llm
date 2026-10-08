@@ -6,6 +6,7 @@ import type { Desktop } from "./app/settings";
 import { desktopFetch } from "./providers/desktop-fetch";
 import { openConversationStore } from "./storage/conversation-store";
 import { openKeychain } from "./storage/keychain";
+import { openSessionFolder } from "./storage/session-folder";
 import { App } from "./ui/App";
 import "./styles.css";
 
@@ -20,6 +21,7 @@ const desktop: Promise<Desktop | null> = isTauri()
   ? openKeychain(invoke).then((keyStore) => ({
       keyStore,
       serverFetch: desktopFetch,
+      sessionFolder: openSessionFolder(invoke),
     }))
   : Promise.resolve(null);
 
