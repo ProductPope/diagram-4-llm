@@ -306,7 +306,9 @@ Browser-specific constraints:
   on a user message;
   "Show in conversation"; "Attach to your message" (also the A key),
   which adds the turn as a reference to the message being written, or
-  removes it again; and collapse or expand. Only finished turns that are
+  removes it again; on an answer, "Summarise the branch up to here" and
+  "Attach a summary of this branch", which attaches the branch's current
+  summary or writes one first; and collapse or expand. Only finished turns that are
   not on the branch being continued can be attached, since those already
   are in its context (`apps/web/src/app/references.ts`). Attached turns
   are marked on the map. Choosing a turn on the map scrolls the
@@ -332,7 +334,12 @@ Browser-specific constraints:
   to remove it. A new version of a message starts with the original's
   references. If another branch is chosen and an attached turn is now on
   it, the turn is marked and sending is blocked until it is removed,
-  rather than dropping it. "/" typed outside a text field focuses it, and it
+  rather than dropping it. Attachments stay until the message is sent or
+  they are removed; only cancelling a new version of a message removes the
+  ones it started with. "New first message", above the conversation,
+  starts a message that continues nothing, so the model sees only it and
+  its attachments: with summaries of two branches attached, this merges
+  them (PLAN scenario 4). "/" typed outside a text field focuses it, and it
   takes focus when editing a message starts.
 - **Context inspector:** the assembled messages, their sources and the
   token estimate, available before sending and stored with each answer.

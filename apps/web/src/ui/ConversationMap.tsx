@@ -29,6 +29,7 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   Eye,
+  GitMerge,
   ScrollText,
   GitFork,
   Paperclip,
@@ -68,6 +69,7 @@ interface TurnData extends Record<string, unknown> {
   readonly onBranchFrom: (answerId: NodeId) => void;
   readonly onToggleReference: (id: NodeId) => void;
   readonly onSummarise: ((answerId: NodeId) => void) | undefined;
+  readonly onAttachSummary: ((answerId: NodeId) => void) | undefined;
   readonly onFocusTurn: (id: NodeId) => void;
   readonly onNavigate: (id: NodeId, direction: Direction) => void;
 }
@@ -91,6 +93,11 @@ interface Props {
   readonly onToggleReference: (id: NodeId) => void;
   /** Summarises the branch up to an answer; absent without a provider. */
   readonly onSummarise: ((answerId: NodeId) => void) | undefined;
+  /**
+   * Attaches the summary of the branch up to an answer to the message
+   * being written, writing one first if there is none.
+   */
+  readonly onAttachSummary: ((answerId: NodeId) => void) | undefined;
 }
 
 const nodeTypes = { turn: TurnNodeView };
@@ -123,6 +130,7 @@ export function ConversationMap({
   attached,
   onToggleReference,
   onSummarise,
+  onAttachSummary,
 }: Props) {
   const [focusId, setFocusId] = useState<NodeId | null>(null);
   const [keyboardMove, setKeyboardMove] = useState<{
@@ -208,6 +216,7 @@ export function ConversationMap({
         onBranchFrom,
         onToggleReference,
         onSummarise,
+        onAttachSummary: attachTo === undefined ? undefined : onAttachSummary,
         onFocusTurn: setFocusId,
         onNavigate,
       },
@@ -331,6 +340,7 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
     onBranchFrom,
     onToggleReference,
     onSummarise,
+    onAttachSummary,
     onFocusTurn,
     onNavigate,
   } = data;
@@ -427,6 +437,17 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
             >
               <ScrollText aria-hidden="true" />
               Summarise the branch up to here
+            </ContextMenuItem>
+          )}
+          {turn.kind === "assistant" && onAttachSummary !== undefined && (
+            <ContextMenuItem
+              disabled={!isUsable(turn)}
+              onSelect={() => {
+                onAttachSummary(turn.id);
+              }}
+            >
+              <GitMerge aria-hidden="true" />
+              Attach a summary of this branch
             </ContextMenuItem>
           )}
           {turn.kind === "user" && (
