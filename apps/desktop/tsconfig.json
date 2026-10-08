@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true,
+    // Node runs the tests by stripping their types.
+    "erasableSyntaxOnly": true
+  },
+  "include": ["e2e"]
+}

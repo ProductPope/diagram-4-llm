@@ -20,6 +20,7 @@ supersedes the old one.
 | [0011](0011-session-map-pane.md)         | A Claude Code pane that draws the session map from the MCP server         | Proposed |
 | [0012](0012-session-topics.md)           | Topics on a session branch are detected on request and not stored         | Proposed |
 | [0013](0013-claude-ai-export-map.md)     | A Claude.ai data export is mapped read-only on the session page           | Proposed |
+| [0014](0014-desktop-app-keychain.md)     | The desktop app wraps the web build and keeps the API key in the keychain | Proposed |
 
 Records move from Proposed to Accepted when phase 0 implementation confirms
 them.

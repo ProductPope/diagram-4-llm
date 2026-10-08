@@ -59,6 +59,7 @@ import {
   createAdapter,
   loadSettings,
   saveSettings,
+  type KeyStore,
   type ProviderSettings,
 } from "../app/settings";
 import { defaultRoute } from "../app/route";
@@ -100,6 +101,8 @@ import { SetupPage } from "./SetupPage";
 export interface AppProps {
   readonly openStore: () => Promise<StorageResult<ConversationStore>>;
   readonly settingsStorage: Storage;
+  /** Where the API key is kept apart from the settings, if anywhere. */
+  readonly keyStore: KeyStore | null;
 }
 
 type StorageState =
@@ -135,13 +138,13 @@ const NARROW_VIEWS: readonly { readonly id: View; readonly label: string }[] = [
   { id: "map", label: "Map" },
 ];
 
-export function App({ openStore, settingsStorage }: AppProps) {
+export function App({ openStore, settingsStorage, keyStore }: AppProps) {
   const [storage, setStorage] = useState<StorageState>({ status: "loading" });
   const [conversations, setConversations] = useState<
     readonly ConversationSummary[]
   >([]);
   const [settings, setSettings] = useState<ProviderSettings | null>(() =>
-    loadSettings(settingsStorage),
+    loadSettings(settingsStorage, keyStore),
   );
   const [showSettings, setShowSettings] = useState(false);
   const narrow = useMediaQuery(NARROW_SCREEN);
@@ -179,7 +182,9 @@ export function App({ openStore, settingsStorage }: AppProps) {
     ReadonlyMap<NodeId, readonly string[]>
   >(() => new Map());
   const [controller, setController] = useState<AbortController | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    () => keyStore?.problem ?? null,
+  );
   const [modelChoice, setModelChoice] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<
     "saved" | "unsaved" | "saving" | "failed"
@@ -863,9 +868,18 @@ export function App({ openStore, settingsStorage }: AppProps) {
     await openDemo();
     navigate("app");
   };
-  const saveSetup = (next: ProviderSettings) => {
-    saveSettings(next, settingsStorage);
+  // Settings that could not be saved are still used until the app is
+  // closed, and the error says so.
+  const applySettings = async (next: ProviderSettings) => {
+    const saved = await saveSettings(next, settingsStorage, keyStore);
+    if (!saved.ok)
+      setError(
+        `The settings could not be saved and apply until you close the app: ${saved.error}`,
+      );
     setSettings(next);
+  };
+  const saveSetup = async (next: ProviderSettings) => {
+    await applySettings(next);
     navigate("app");
   };
 
@@ -907,7 +921,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
       <SetupPage
         origin={window.location.origin}
         systemPrompt={settings?.systemPrompt ?? ""}
-        onComplete={saveSetup}
+        onComplete={(next) => void saveSetup(next)}
         onBack={() => {
           navigate(settings === null ? "welcome" : "app");
         }}
@@ -1021,8 +1035,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
           <SettingsForm
             initial={settings}
             onSave={(next) => {
-              saveSettings(next, settingsStorage);
-              setSettings(next);
+              void applySettings(next);
               setShowSettings(false);
             }}
             onCancel={() => {
