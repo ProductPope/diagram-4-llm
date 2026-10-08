@@ -137,7 +137,10 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
       </main>
 
       {next !== undefined && (
-        <div className="sticky bottom-0 bg-linear-to-t from-background from-70% to-transparent pt-6">
+        <section
+          className="sticky bottom-0 bg-linear-to-t from-background from-70% to-transparent pt-6"
+          aria-label="Ask a question"
+        >
           <div className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-4 pb-4">
             <div className="flex flex-wrap items-center gap-2">
               {remaining.slice(1).map((index) => (
@@ -185,7 +188,7 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
               </Button>
             </form>
           </div>
-        </div>
+        </section>
       )}
 
       <footer className="border-t px-4 py-6 text-center text-xs text-muted-foreground">

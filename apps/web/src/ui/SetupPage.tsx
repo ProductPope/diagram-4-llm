@@ -19,7 +19,9 @@ export function SetupPage({ onOpenDemo, onSkip, demoReady, ...wizard }: Props) {
   return (
     <div className="flex min-h-dvh flex-col bg-muted/40">
       <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-background px-4">
-        <Brand />
+        <h1>
+          <Brand />
+        </h1>
         <div className="flex items-center gap-1">
           <Button variant="ghost" onClick={onOpenDemo} disabled={!demoReady}>
             <Sparkles aria-hidden="true" />
