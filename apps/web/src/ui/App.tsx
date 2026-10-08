@@ -28,7 +28,7 @@ import {
   Sparkles,
   Upload,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { flushSync } from "react-dom";
 import { useDefaultLayout } from "react-resizable-panels";
 
@@ -131,6 +131,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
   // Only used on a narrow screen. Opening, starting or choosing something
   // shows the conversation, where its result and any error appear.
   const [view, setView] = useState<View>("conversation");
+  const conversationRef = useRef<HTMLElement>(null);
   const route = useRoute();
   const page =
     route ??
@@ -601,6 +602,18 @@ export function App({ openStore, settingsStorage }: AppProps) {
     );
   }
 
+  // The app routes on the URL fragment, so following "#conversation" would
+  // leave the app page. Focus moves by hand instead.
+  const skipToConversation = (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    // A hidden element cannot take focus, and on a narrow screen the
+    // conversation may be hidden behind another view.
+    flushSync(() => {
+      setView("conversation");
+    });
+    conversationRef.current?.focus();
+  };
+
   const sidebar = (
     <nav
       className="flex h-full flex-col gap-3 bg-sidebar p-3 text-sidebar-foreground"
@@ -663,7 +676,12 @@ export function App({ openStore, settingsStorage }: AppProps) {
     </nav>
   );
   const conversation = (
-    <main className="flex h-full flex-col">
+    <main
+      ref={conversationRef}
+      id="conversation"
+      tabIndex={-1}
+      className="flex h-full flex-col"
+    >
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
         {error !== null && (
           <Alert variant="destructive">
@@ -826,6 +844,18 @@ export function App({ openStore, settingsStorage }: AppProps) {
 
   return (
     <div className="flex h-dvh flex-col">
+      {/* Without a transition, the link appears and disappears at once
+          instead of growing out of and shrinking into a single pixel. */}
+      <a
+        href="#conversation"
+        className={cn(
+          buttonVariants({ variant: "outline" }),
+          "absolute top-3 left-4 z-50 transition-none not-focus:sr-only",
+        )}
+        onClick={skipToConversation}
+      >
+        Skip to the conversation
+      </a>
       <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b px-4">
         <h1>
           <Brand />
