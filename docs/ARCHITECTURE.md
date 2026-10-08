@@ -363,8 +363,9 @@ page. The mitigations are:
   untrusted input. Images in answers are shown as links instead of being
   loaded, so a crafted answer cannot make the browser send conversation
   data to another server by loading an image URL,
-- dependencies kept minimal, with lockfile-pinned versions and automated
-  security advisories.
+- dependencies kept minimal, with lockfile-pinned versions, automated
+  security advisories, and weekly update pull requests from Dependabot for
+  packages and the SHA-pinned workflow actions.
 
 Phase 3 desktop packaging moves keys to the operating system keychain.
 
