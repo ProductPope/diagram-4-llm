@@ -325,11 +325,14 @@ Browser-specific constraints:
   it, and the field moves down to the bottom of the page. Then the
   visitor asks the next question with Enter or Send, or picks another.
   Each answer is "typed" first, then written out a few characters at a
-  time, as a model streams it (`apps/web/src/ui/typewriter.ts`). When
-  the user prefers reduced motion there is no pause and no typing: the
-  field shows at once and questions and answers appear whole. "Show
-  everything" reveals the whole page. It describes only what the app does
-  today, labels planned work as planned, and states where data goes. It leads to the demo, to setup or to the app.
+  time, as a model streams it (`apps/web/src/ui/typewriter.ts`). A new
+  question scrolls to the top, and the page follows the answer as it is
+  written, until the visitor scrolls themselves. When the user prefers
+  reduced motion there is no pause and no typing: the field shows at once
+  and questions and answers appear whole. "Show everything" reveals the
+  whole page. It describes only what the app does today, labels planned
+  work as planned, and states where data goes. It leads to the demo, to
+  setup or to the app.
 - **Setup** (`apps/web/src/ui/SetupPage.tsx`, `SetupWizard.tsx`): a page
   of its own, with the demo and "Skip for now" on every step. Choose a
   provider, enter a key or a server address, test the connection, and
