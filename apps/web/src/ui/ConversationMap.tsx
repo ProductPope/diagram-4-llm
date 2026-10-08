@@ -29,6 +29,7 @@ import {
   ChevronsUpDown,
   Eye,
   GitFork,
+  Paperclip,
   Pencil,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -43,6 +44,7 @@ import {
   type Position as Point,
 } from "../app/layout";
 import { neighbour, type Direction } from "../app/navigation";
+import { referenceChecker } from "../app/references";
 
 interface TurnData extends Record<string, unknown> {
   readonly turn: TurnNode;
@@ -56,10 +58,13 @@ interface TurnData extends Record<string, unknown> {
   readonly isActive: boolean;
   /** Present only for nodes with children. */
   readonly fold?: { readonly hidden: number };
+  /** Whether the turn is attached to the message being written, or can be. */
+  readonly attachment: "attached" | "attachable" | "unavailable";
   readonly onSelect: (id: NodeId) => void;
   readonly onToggleCollapsed: (id: NodeId) => void;
   readonly onEdit: (turn: TurnNode) => void;
   readonly onBranchFrom: (answerId: NodeId) => void;
+  readonly onToggleReference: (id: NodeId) => void;
   readonly onFocusTurn: (id: NodeId) => void;
   readonly onNavigate: (id: NodeId, direction: Direction) => void;
 }
@@ -73,6 +78,14 @@ interface Props {
   readonly onToggleCollapsed: (id: NodeId) => void;
   readonly onEdit: (turn: TurnNode) => void;
   readonly onBranchFrom: (answerId: NodeId) => void;
+  /**
+   * Where the message being written continues, which decides the turns
+   * that can be attached to it; undefined when no message can be sent.
+   */
+  readonly attachTo: NodeId | null | undefined;
+  /** Turns attached to the message being written. */
+  readonly attached: readonly NodeId[];
+  readonly onToggleReference: (id: NodeId) => void;
 }
 
 const nodeTypes = { turn: TurnNodeView };
@@ -89,7 +102,10 @@ const nodeTypes = { turn: TurnNodeView };
  * message of the user, which forks the conversation at that message.
  * Each node also has a context menu (right click, or the keyboard's
  * context menu key) with the same actions plus "Branch from here", which
- * continues after the node's exchange (see branchPoint).
+ * continues after the node's exchange (see branchPoint). The A key
+ * attaches the focused turn to the message being written, or removes it
+ * again, so a turn from another branch can be part of the next message's
+ * context.
  */
 export function ConversationMap({
   graph,
@@ -98,6 +114,9 @@ export function ConversationMap({
   onToggleCollapsed,
   onEdit,
   onBranchFrom,
+  attachTo,
+  attached,
+  onToggleReference,
 }: Props) {
   const [focusId, setFocusId] = useState<NodeId | null>(null);
   const [keyboardMove, setKeyboardMove] = useState<{
@@ -105,6 +124,8 @@ export function ConversationMap({
     readonly position: Point;
   } | null>(null);
   const onBranch = new Set(branch.map((turn) => turn.id));
+  const referenceProblem =
+    attachTo === undefined ? undefined : referenceChecker(graph, attachTo);
   const tipId = branch.at(-1)?.id;
   const children = new Map<string | null, string[]>();
   const edges: Edge[] = [];
@@ -170,10 +191,16 @@ export function ConversationMap({
         title: graph.meta.get(node.id)?.title,
         isActive: node.id === activeId,
         ...(children.has(node.id) ? { fold: { hidden: hidden ?? 0 } } : {}),
+        attachment: attached.includes(node.id)
+          ? "attached"
+          : referenceProblem?.(node) === null
+            ? "attachable"
+            : "unavailable",
         onSelect,
         onToggleCollapsed,
         onEdit,
         onBranchFrom,
+        onToggleReference,
         onFocusTurn: setFocusId,
         onNavigate,
       },
@@ -290,10 +317,12 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
     title,
     isActive,
     fold,
+    attachment,
     onSelect,
     onToggleCollapsed,
     onEdit,
     onBranchFrom,
+    onToggleReference,
     onFocusTurn,
     onNavigate,
   } = data;
@@ -302,7 +331,9 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
     `map-node-${turn.kind}`,
     onBranch ? "map-node-branch" : "",
     turn.kind === "assistant" ? `map-node-${turn.status}` : "",
+    attachment === "attached" ? "map-node-attached" : "",
   ];
+  const canToggleReference = attachment !== "unavailable";
   return (
     <>
       <Handle type="target" position={Position.Top} isConnectable={false} />
@@ -314,11 +345,13 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
             type="button"
             className={classes.filter((c) => c !== "").join(" ")}
             aria-current={isTip ? "true" : undefined}
-            aria-keyshortcuts={
-              turn.kind === "user"
-                ? "ArrowUp ArrowDown ArrowLeft ArrowRight E"
-                : "ArrowUp ArrowDown ArrowLeft ArrowRight"
-            }
+            aria-keyshortcuts={[
+              "ArrowUp ArrowDown ArrowLeft ArrowRight",
+              turn.kind === "user" ? "E" : "",
+              canToggleReference ? "A" : "",
+            ]
+              .filter((keys) => keys !== "")
+              .join(" ")}
             data-turn-id={turn.id}
             tabIndex={isActive ? 0 : -1}
             title={turn.content}
@@ -329,15 +362,18 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
               onFocusTurn(turn.id);
             }}
             onKeyDown={(event) => {
-              if (
-                turn.kind === "user" &&
-                event.key.toLowerCase() === "e" &&
-                !event.ctrlKey &&
-                !event.metaKey &&
-                !event.altKey
-              ) {
+              const letter =
+                event.ctrlKey || event.metaKey || event.altKey
+                  ? undefined
+                  : event.key.toLowerCase();
+              if (turn.kind === "user" && letter === "e") {
                 event.preventDefault();
                 onEdit(turn);
+                return;
+              }
+              if (canToggleReference && letter === "a") {
+                event.preventDefault();
+                onToggleReference(turn.id);
                 return;
               }
               const direction = KEY_DIRECTIONS[event.key];
@@ -348,6 +384,7 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
           >
             <span className="map-node-role">
               {turn.kind === "user" ? "You" : turn.generation.model}
+              {attachment === "attached" && " · attached"}
             </span>
             <span className="map-node-label">{title ?? labelOf(turn)}</span>
           </button>
@@ -361,6 +398,17 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
           >
             <GitFork aria-hidden="true" />
             Branch from here
+          </ContextMenuItem>
+          <ContextMenuItem
+            disabled={!canToggleReference}
+            onSelect={() => {
+              onToggleReference(turn.id);
+            }}
+          >
+            <Paperclip aria-hidden="true" />
+            {attachment === "attached"
+              ? "Remove from your message"
+              : "Attach to your message"}
           </ContextMenuItem>
           {turn.kind === "user" && (
             <ContextMenuItem

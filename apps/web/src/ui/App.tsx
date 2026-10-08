@@ -34,6 +34,7 @@ import { flushSync } from "react-dom";
 import { useDefaultLayout } from "react-resizable-panels";
 
 import { visibleBranch } from "../app/branch";
+import { referencesOnPath, toggleReference } from "../app/references";
 import { DEMO_CONVERSATION_ID, demoConversation } from "../app/demo";
 import {
   exportFileName,
@@ -65,6 +66,7 @@ import {
   type ConversationSummary,
   type StorageResult,
 } from "../storage/conversation-store";
+import { AttachedReferences } from "./AttachedReferences";
 import { Composer } from "./Composer";
 import { ContextInspector } from "./ContextInspector";
 import { ConversationList } from "./ConversationList";
@@ -154,6 +156,8 @@ export function App({ openStore, settingsStorage }: AppProps) {
   const [editing, setEditing] = useState<Editing | null>(null);
   const [composerKey, setComposerKey] = useState(0);
   const [draft, setDraft] = useState("");
+  // Turns attached to the message being written, sent in this order.
+  const [refs, setRefs] = useState<readonly NodeId[]>([]);
   const [controller, setController] = useState<AbortController | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [modelChoice, setModelChoice] = useState<string | null>(null);
@@ -264,12 +268,18 @@ export function App({ openStore, settingsStorage }: AppProps) {
   const busy = controller !== null;
   const branch = graph === null ? [] : visibleBranch(graph, anchor);
   const parentId = editing !== null ? editing.parentId : continuationOf(branch);
+  const refsOnPath =
+    graph === null || parentId === undefined
+      ? new Set<NodeId>()
+      : referencesOnPath(graph, parentId, refs);
   const blockedReason =
     settings === null
       ? "Configure a provider in Settings before sending."
       : parentId === undefined
         ? "The last answer is unfinished or failed. Regenerate it or edit your message to continue."
-        : null;
+        : refsOnPath.size > 0
+          ? "An attached turn is already in this branch. Remove it to send."
+          : null;
 
   // The model for the next answer: the user's choice if it is still
   // configured, otherwise the model that answered last on this branch, so a
@@ -369,10 +379,12 @@ export function App({ openStore, settingsStorage }: AppProps) {
     }
     const store = target;
     const answerSettings = generation(settings);
+    const draftRefs = refs;
+    setRefs([]);
     run(async (signal) => {
       const sent = await sendMessage(
         store,
-        { parentId, refs: [], content },
+        { parentId, refs: draftRefs, content },
         answerSettings,
         env,
         signal,
@@ -414,6 +426,8 @@ export function App({ openStore, settingsStorage }: AppProps) {
     });
   };
 
+  // The new version starts with the original's attachments, which the
+  // user can remove like any other.
   const startEditing = (turn: TurnNode) => {
     setView("conversation");
     setEditing({
@@ -422,6 +436,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
       content: turn.content,
     });
     setDraft(turn.content);
+    setRefs(turn.kind === "user" ? turn.refs : []);
     setComposerKey((key) => key + 1);
   };
 
@@ -432,12 +447,14 @@ export function App({ openStore, settingsStorage }: AppProps) {
     setAnchor(answerId);
     setEditing({ kind: "branch", parentId: answerId, content: "" });
     setDraft("");
+    setRefs([]);
     setComposerKey((key) => key + 1);
   };
 
   const cancelEditing = () => {
     setEditing(null);
     setDraft("");
+    setRefs([]);
     setComposerKey((key) => key + 1);
   };
 
@@ -452,6 +469,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
     setCurrent(createStore(loaded.value));
     setAnchor(null);
     setEditing(null);
+    setRefs([]);
   };
 
   // The demo is saved like any other conversation the first time, so it can
@@ -517,6 +535,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
         setCurrent(null);
         setAnchor(null);
         setEditing(null);
+        setRefs([]);
       });
     }
     const removed = await storage.store.remove(id);
@@ -578,6 +597,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
     setCurrent(null);
     setAnchor(null);
     setEditing(null);
+    setRefs([]);
     // Without a provider nothing can be sent, so the settings come first.
     // Saving them closes the form onto the new conversation.
     if (settings === null) setShowSettings(true);
@@ -767,6 +787,10 @@ export function App({ openStore, settingsStorage }: AppProps) {
               branch={branch}
               busy={busy}
               onSelect={setAnchor}
+              onShowTurn={(id) => {
+                setAnchor(id);
+                revealTurn(id);
+              }}
               onEdit={startEditing}
               onRegenerate={regenerate}
               reveal={reveal}
@@ -790,10 +814,20 @@ export function App({ openStore, settingsStorage }: AppProps) {
               </Button>
             </div>
           )}
+          {graph !== null && (
+            <AttachedReferences
+              graph={graph}
+              refs={refs}
+              onPath={refsOnPath}
+              onRemove={(id) => {
+                setRefs((previous) => previous.filter((ref) => ref !== id));
+              }}
+            />
+          )}
           {graph !== null && parentId !== undefined && (
             <ContextInspector
               graph={graph}
-              draft={{ parentId, refs: [], content: draft }}
+              draft={{ parentId, refs, content: draft }}
               systemPrompt={
                 settings === null || settings.systemPrompt === ""
                   ? null
@@ -877,6 +911,11 @@ export function App({ openStore, settingsStorage }: AppProps) {
         }}
         onBranchFrom={(answerId) => {
           if (!busy) startBranch(answerId);
+        }}
+        attachTo={parentId}
+        attached={refs}
+        onToggleReference={(id) => {
+          setRefs((previous) => toggleReference(previous, id));
         }}
       />
     );

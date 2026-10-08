@@ -298,8 +298,13 @@ Browser-specific constraints:
   preferring the one on the selected branch), so the model sees the
   branch up to there and nothing after it; "New version of this message"
   on a user message;
-  "Show in conversation"; and collapse or expand. Choosing a turn on the
-  map scrolls the conversation to it. Moving focus alone never changes the branch
+  "Show in conversation"; "Attach to your message" (also the A key),
+  which adds the turn as a reference to the message being written, or
+  removes it again; and collapse or expand. Only finished turns that are
+  not on the branch being continued can be attached, since those already
+  are in its context (`apps/web/src/app/references.ts`). Attached turns
+  are marked on the map. Choosing a turn on the map scrolls the
+  conversation to it. Moving focus alone never changes the branch
   being read.
   References are drawn as dashed edges.
 - **Reading pane:** a linear view of the selected branch: the path to a
@@ -308,9 +313,14 @@ Browser-specific constraints:
   its sibling versions; editing a message or regenerating an answer adds a
   sibling instead of changing anything. Answers are rendered as Markdown
   (`apps/web/src/ui/MarkdownContent.tsx`); the user's own messages as plain
-  text.
+  text, with the turns attached to them listed above; choosing one shows
+  it in its own branch.
 - **Composer:** sends to the selected node's branch. Shows the references
-  attached to the draft. "/" typed outside a text field focuses it, and it
+  attached to the draft, in the order they are sent, each with a button
+  to remove it. A new version of a message starts with the original's
+  references. If another branch is chosen and an attached turn is now on
+  it, the turn is marked and sending is blocked until it is removed,
+  rather than dropping it. "/" typed outside a text field focuses it, and it
   takes focus when editing a message starts.
 - **Context inspector:** the assembled messages, their sources and the
   token estimate, available before sending and stored with each answer.
