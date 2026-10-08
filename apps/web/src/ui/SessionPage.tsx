@@ -1,5 +1,6 @@
 import {
   readClaudeCodeSession,
+  sessionBranch,
   type ActivityItem,
   type ClaudeCodeSession,
   type SessionStep,
@@ -15,7 +16,6 @@ import {
   describeNotShown,
   describeProblems,
   describeSessionError,
-  sessionBranch,
 } from "../app/session";
 import { NARROW_SCREEN, useMediaQuery } from "../app/useMediaQuery";
 import { Brand } from "./Brand";

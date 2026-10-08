@@ -54,4 +54,8 @@ export type {
   SessionReadError,
   SessionStep,
 } from "./claude-code.js";
-export { readClaudeCodeSession } from "./claude-code.js";
+export {
+  readClaudeCodeSession,
+  sessionBranch,
+  sessionForest,
+} from "./claude-code.js";
