@@ -170,6 +170,17 @@ consecutive weeks and records the friction points in issues.
 **Exit:** each of the four context modes in section 5 can be completed
 through keyboard and mouse in under 10 seconds by a user who knows the app.
 
+**Progress** (updated with each merged change):
+
+- [x] References: any finished turn from another branch can be attached
+      to the message being written (map context menu or the A key),
+      shown in the composer and on the sent message, and removed before
+      sending
+- [ ] Summary nodes
+- [ ] Merge workflows
+- [ ] Token budget warnings
+- [ ] Suggested branches
+
 ### Phase 3: Reach
 
 Candidates, in the order currently planned, re-prioritised after phase 2
