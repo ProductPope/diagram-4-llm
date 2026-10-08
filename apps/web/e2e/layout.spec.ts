@@ -8,7 +8,7 @@ test("puts the map on the right and keeps panel widths the user sets", async ({
     if (message.type() === "error") consoleErrors.push(message.text());
   });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/");
+  await page.goto("/#/app");
   await page.getByRole("button", { name: "Open the demo" }).click();
 
   const map = page.getByRole("region", { name: "Conversation map" });

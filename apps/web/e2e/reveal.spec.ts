@@ -4,7 +4,7 @@ test("scrolls the conversation to a turn chosen on the map", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 600 });
-  await page.goto("/");
+  await page.goto("/#/app");
   await page.getByRole("button", { name: "Open the demo" }).click();
 
   const transcript = page.getByRole("list", { name: "Selected branch" });

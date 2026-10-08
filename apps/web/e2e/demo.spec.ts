@@ -5,7 +5,7 @@ test("opens the demo without a provider, and only once", async ({ page }) => {
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
-  await page.goto("/");
+  await page.goto("/#/app");
 
   const transcript = page.getByRole("list", { name: "Selected branch" });
   const map = page.getByRole("region", { name: "Conversation map" });

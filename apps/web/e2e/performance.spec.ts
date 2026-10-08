@@ -16,7 +16,7 @@ test(`stays responsive with a ${String(TURNS)}-turn conversation`, async ({
 }, testInfo) => {
   const file = testInfo.outputPath("large.json");
   await writeFile(file, JSON.stringify(largeConversation(TURNS)));
-  await page.goto("/");
+  await page.goto("/#/app");
 
   const map = page.getByRole("region", { name: "Conversation map" });
   const transcript = page.getByRole("list", { name: "Selected branch" });
