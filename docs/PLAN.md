@@ -187,7 +187,10 @@ through keyboard and mouse in under 10 seconds by a user who knows the app.
 - [x] Token budget warnings: a context window per model in the settings;
       a warning from 80% of it, and above it sending is blocked with
       suggestions (continue from a summary, remove a large attachment)
-- [ ] Suggested branches
+- [x] Suggested branches: three follow-up questions under each answer
+      from a model chosen in the settings (off by default), kept only
+      while the page is open; choosing one fills the composer, and several
+      are sent only after their combined estimate is confirmed
 
 ### Phase 3: Reach
 

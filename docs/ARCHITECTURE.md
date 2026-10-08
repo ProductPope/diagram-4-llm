@@ -329,6 +329,16 @@ Browser-specific constraints:
   shown after the answer they end at, newest revision only, rendered as
   Markdown. Each can be edited, which saves a revision, and attached to the
   message being written like a turn.
+  If a model for suggested branches is chosen in the settings (none by
+  default), each complete answer gets three follow-up questions from it,
+  in the same task as the title, so Stop cancels them; "Suggest
+  follow-ups" asks for them later. The request holds only the answer and
+  its question (`apps/web/src/chat/suggestions.ts`). Suggestions are kept
+  only while the page is open and are never part of the conversation or
+  its export. Choosing one starts a branch from the answer with the
+  question in the composer, unsent. Several can be selected and sent as
+  separate branches, one after another, after the combined input estimate
+  is shown and confirmed.
 - **Composer:** sends to the selected node's branch. Shows the references
   attached to the draft, in the order they are sent, each with a button
   to remove it. A new version of a message starts with the original's

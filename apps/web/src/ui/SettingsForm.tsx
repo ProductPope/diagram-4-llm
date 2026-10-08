@@ -39,6 +39,9 @@ export function SettingsForm({
   const [apiKey, setApiKey] = useState(initial?.apiKey ?? "");
   const [models, setModels] = useState(initial?.models.join("\n") ?? "");
   const [titleModel, setTitleModel] = useState(initial?.titleModel ?? "");
+  const [suggestionModel, setSuggestionModel] = useState(
+    initial?.suggestionModel ?? "",
+  );
   // Kept for every model typed so far, so a window survives a model being
   // removed from the list and added back while the form is open.
   const [windows, setWindows] = useState<Readonly<Record<string, string>>>(() =>
@@ -66,6 +69,9 @@ export function SettingsForm({
       apiKey,
       models: modelList,
       ...(titleModel.trim() === "" ? {} : { titleModel: titleModel.trim() }),
+      ...(suggestionModel.trim() === ""
+        ? {}
+        : { suggestionModel: suggestionModel.trim() }),
       ...(Object.keys(contextWindows).length === 0 ? {} : { contextWindows }),
       systemPrompt,
     };
@@ -214,6 +220,26 @@ export function SettingsForm({
               the map. Each title is one extra small request, so a cheap or
               local model is a good choice. Leave it empty to show the start of
               each answer.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="settings-suggestion-model">
+              Model for suggested branches (optional)
+            </Label>
+            <Input
+              id="settings-suggestion-model"
+              className="font-mono"
+              type="text"
+              value={suggestionModel}
+              onChange={(event) => {
+                setSuggestionModel(event.target.value);
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              When set, this model proposes three follow-up questions under each
+              finished answer. It is sent only that answer and its question, and
+              nothing it proposes is sent until you choose it. Leave it empty to
+              turn suggestions off.
             </p>
           </div>
           <div className="flex flex-col gap-2">

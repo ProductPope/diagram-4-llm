@@ -54,6 +54,20 @@ describe("provider settings", () => {
     expect(loadSettings(storage)).toEqual(settings);
   });
 
+  it("round-trips a model for suggested branches", () => {
+    const storage = memoryStorage();
+    const settings: ProviderSettings = {
+      adapter: "openai-compatible",
+      baseUrl: "http://localhost:11434/v1",
+      apiKey: "",
+      models: ["llama3"],
+      suggestionModel: "qwen3",
+      systemPrompt: "",
+    };
+    saveSettings(settings, storage);
+    expect(loadSettings(storage)).toEqual(settings);
+  });
+
   it("round-trips context windows of models", () => {
     const storage = memoryStorage();
     const settings: ProviderSettings = {
