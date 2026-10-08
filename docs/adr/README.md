@@ -17,6 +17,7 @@ supersedes the old one.
 | [0008](0008-generating-summaries.md)     | Summaries are generated from a transcript and saved only when finished    | Proposed |
 | [0009](0009-claude-code-session-map.md)  | Claude Code sessions are read into a separate, read-only map              | Proposed |
 | [0010](0010-local-mcp-server.md)         | A read-only local MCP server over exported files                          | Proposed |
+| [0011](0011-session-map-pane.md)         | A Claude Code pane that draws the session map from the MCP server         | Proposed |
 
 Records move from Proposed to Accepted when phase 0 implementation confirms
 them.

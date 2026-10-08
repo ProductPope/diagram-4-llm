@@ -30,5 +30,10 @@ jobs:
       - run: pnpm format:check
       - run: pnpm test
       - run: pnpm build
+      # The Claude Code mod is checked with Claude Code's own validator and
+      # test runner, which need neither a sign-in nor the network. The
+      # version is pinned so a new release cannot change what runs.
+      - run: npm install --global @anthropic-ai/claude-code@2.1.294
+      - run: pnpm --filter @diagram-4-llm/mcp test:plugin
       - run: pnpm --filter @diagram-4-llm/web exec playwright install --with-deps chromium
       - run: pnpm e2e

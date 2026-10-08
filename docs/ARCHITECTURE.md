@@ -31,7 +31,9 @@ desktop shell. See [ADR 0004](adr/0004-pure-core-package.md).
 `packages/mcp` is the first such consumer: a local MCP server that reads
 exported conversations and Claude Code session transcripts from disk and
 offers them to agents as read-only tools
-([ADR 0010](adr/0010-local-mcp-server.md)).
+([ADR 0010](adr/0010-local-mcp-server.md)). Its `plugin/` folder is a Claude Code
+plugin whose pane draws the current session's map from that server
+([ADR 0011](adr/0011-session-map-pane.md)).
 
 ## 2. Data model
 

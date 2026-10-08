@@ -65,6 +65,35 @@ its configuration:
 }
 ```
 
+## Session map pane in Claude Code
+
+`plugin/` is a Claude Code plugin with a
+[mod](https://code.claude.com/docs/en/plugins/mods/overview) that adds a
+`/session-map` command. It opens a pane beside the transcript, or above the
+prompt in a narrow terminal, with the map of the session you are in, the
+same outline `read_claude_code_session` gives Claude. The pane follows the
+session after each answer; press `r` to read it again. The plugin starts
+its own copy of the server, so the session tools work without
+`claude mcp add`.
+
+Mods need Claude Code 2.1.287 or later, and draw only in the terminal and
+the Code tab of the Desktop app. Elsewhere, such as `claude -p`,
+`/session-map` prints the map instead. After `pnpm build`, load the
+plugin for one session:
+
+```sh
+claude --plugin-dir /path/to/diagram-4-llm/packages/mcp/plugin
+```
+
+To load it in every session, add its absolute path to
+`CLAUDE_CODE_PLUGIN_DIRS`. If Claude Code refuses the pane's call to the
+server, as `claude -p` does until it is allowed, allow the tool with
+`--allowedTools mcp__plugin_diagram-4-llm_diagram-4-llm__read_claude_code_session`
+or the same name in the `permissions.allow` list of your settings.
+
+The plugin points at `../dist/main.js`, so it runs from a clone and is
+not installable from a marketplace.
+
 Session transcripts can contain anything that passed through a tool,
 including secrets. An agent with this server can read every session in
 the projects folder, so add it only to agents you would let read them.

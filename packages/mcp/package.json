@@ -11,7 +11,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:plugin": "claude plugin validate --strict plugin && claude plugin test plugin"
   },
   "dependencies": {
     "@diagram-4-llm/core": "workspace:*",
