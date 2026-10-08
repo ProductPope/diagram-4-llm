@@ -216,6 +216,10 @@ based on observed use. Each one runs on the user's device:
       work done for each (answers and tool calls with their results) and
       compactions, kept only while the page is open
       ([ADR 0009](adr/0009-claude-code-session-map.md))
+- [x] Local MCP server (`packages/mcp`): read-only tools for Claude Code
+      and Claude Desktop over exported conversations (maps, branches as
+      the model saw them, summaries) and Claude Code sessions (list, map,
+      a branch in full) ([ADR 0010](adr/0010-local-mcp-server.md))
 
 ## 7. Success criteria
 

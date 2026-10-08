@@ -28,6 +28,11 @@ network. Keeping this boundary makes the critical logic testable without a
 browser and reusable by later consumers such as an MCP server, a CLI or a
 desktop shell. See [ADR 0004](adr/0004-pure-core-package.md).
 
+`packages/mcp` is the first such consumer: a local MCP server that reads
+exported conversations and Claude Code session transcripts from disk and
+offers them to agents as read-only tools
+([ADR 0010](adr/0010-local-mcp-server.md)).
+
 ## 2. Data model
 
 The types below are the specification for `packages/core`. Names may change

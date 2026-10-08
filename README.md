@@ -71,12 +71,13 @@ pnpm e2e     # end-to-end tests against the production build (Playwright)
 pnpm --filter @diagram-4-llm/web dev   # run the web app locally
 ```
 
-The code is in two packages:
+The code is in three packages:
 
-| Path                             | Contents                                                                            |
-| -------------------------------- | ----------------------------------------------------------------------------------- |
-| [`packages/core`](packages/core) | Graph model, invariants, context assembly and data format. Pure TypeScript, no I/O. |
-| [`apps/web`](apps/web)           | Browser app: chat, branching, context inspector, provider adapters and storage.     |
+| Path                             | Contents                                                                                |
+| -------------------------------- | --------------------------------------------------------------------------------------- |
+| [`packages/core`](packages/core) | Graph model, invariants, context assembly and data format. Pure TypeScript, no I/O.     |
+| [`apps/web`](apps/web)           | Browser app: chat, branching, context inspector, provider adapters and storage.         |
+| [`packages/mcp`](packages/mcp)   | Local MCP server that lets agents read exported conversations and Claude Code sessions. |
 
 ### Connecting a model
 
