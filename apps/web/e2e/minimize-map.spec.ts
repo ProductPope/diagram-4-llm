@@ -33,7 +33,7 @@ test("minimizes the map to a strip that navigates the branch", async ({
   // One marker per turn of the branch, named like the turn.
   await expect(markers).toHaveCount(turnCount);
   await expect(markers.first()).toHaveAccessibleName(
-    /^Your message: I'm building a small web app/,
+    /^Your message: I'm the product manager of an invoicing app/,
   );
 
   // The strip follows the reading: the turns on screen are marked.
@@ -49,14 +49,14 @@ test("minimizes the map to a strip that navigates the branch", async ({
 
   // The strip grows with the branch.
   const input = page.getByLabel("Message", { exact: true });
-  await input.fill("And restoring it?");
+  await input.fill("Make it shorter.");
   await input.press("Control+Enter");
   await expect(
-    transcript.getByText("Answer to: And restoring it?"),
+    transcript.getByText("Answer to: Make it shorter."),
   ).toBeVisible();
   await expect(markers).toHaveCount(turnCount + 2);
   await expect(markers.last()).toHaveAccessibleName(
-    "Answer: Answer to: And restoring it?",
+    "Answer: Answer to: Make it shorter.",
   );
 
   // The choice is remembered.
@@ -65,7 +65,7 @@ test("minimizes the map to a strip that navigates the branch", async ({
   await page
     .getByRole("navigation", { name: "Conversations" })
     .getByRole("button", {
-      name: "Demo: which database for a small app?",
+      name: "Demo: planning a feature launch",
       exact: true,
     })
     .click();

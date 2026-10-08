@@ -17,13 +17,13 @@ test("scrolls the conversation to a turn chosen on the map", async ({
   await expect(first).not.toBeInViewport();
 
   await map
-    .locator(".map-node-user", { hasText: "I'm building a small web app" })
+    .locator(".map-node-user", { hasText: "I'm the product manager" })
     .click();
   await expect(first).toBeInViewport();
 
   // Choosing a turn further down brings it into view as well.
   await map
-    .locator(".map-node-assistant", { hasText: "Backing up SQLite" })
+    .locator(".map-node-assistant", { hasText: "Announcement for everyone" })
     .click();
   await expect(last).toBeInViewport();
 });

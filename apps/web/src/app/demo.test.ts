@@ -18,24 +18,30 @@ describe("demoConversation", () => {
     expect(parsed).toEqual({ ok: true, value: graph });
   });
 
-  it("forks the first answer into two topics", () => {
+  it("forks the first answer into three topics", () => {
     const topics = childrenOf(demo(), "demo-a1").map((turn) => turn.content);
-    expect(topics).toHaveLength(2);
-    expect(topics.join(" ")).toMatch(/PostgreSQL[\s\S]*SQLite/);
+    expect(topics).toHaveLength(3);
+    expect(topics.join(" ")).toMatch(/scope[\s\S]*worked[\s\S]*rollout/);
+  });
+
+  it("forks again inside a topic", () => {
+    expect(childrenOf(demo(), "demo-a2-rollout")).toHaveLength(2);
   });
 
   it("has two versions of one answer", () => {
-    expect(childrenOf(demo(), "demo-q2-postgres")).toHaveLength(2);
+    expect(childrenOf(demo(), "demo-q2-scope")).toHaveLength(2);
   });
 
   it("opens on the deepest branch", () => {
     expect(visibleBranch(demo(), null).map((turn) => turn.id)).toEqual([
       "demo-q1",
       "demo-a1",
-      "demo-q2-sqlite",
-      "demo-a2-sqlite",
-      "demo-q3-sqlite",
-      "demo-a3-sqlite",
+      "demo-q2-rollout",
+      "demo-a2-rollout",
+      "demo-q3-invite",
+      "demo-a3-invite",
+      "demo-q4-invite",
+      "demo-a4-invite",
     ]);
   });
 

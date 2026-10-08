@@ -60,18 +60,18 @@ test("shows one view at a time on a narrow screen", async ({ page }) => {
 
   // Opening something from the list shows it.
   await conversations.getByRole("button", { name: "Open the demo" }).click();
-  await expect(transcript.getByText("How would I back it up?")).toBeVisible();
+  await expect(
+    transcript.getByText("Now write the in-app announcement for everyone else"),
+  ).toBeVisible();
   await expect(input).toHaveValue("A draft");
 
   // Choosing a turn on the map shows it in the conversation.
   await views.getByRole("button", { name: "Map" }).click();
   await expect(transcript).toBeHidden();
-  await map
-    .locator(".map-node-user", { hasText: "Go deeper on PostgreSQL" })
-    .click();
+  await map.locator(".map-node-user", { hasText: "Start with scope" }).click();
   await expect(map).toBeHidden();
   await expect(
-    transcript.getByText("Go deeper on PostgreSQL", { exact: false }).first(),
+    transcript.getByText("Start with scope", { exact: false }).first(),
   ).toBeVisible();
   await expectNoHorizontalScroll(page);
   expect(consoleErrors).toEqual([]);
