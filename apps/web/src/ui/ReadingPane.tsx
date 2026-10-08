@@ -2,9 +2,11 @@ import type {
   AssistantTurn,
   ConversationGraph,
   NodeId,
+  SummaryNode,
   TurnNode,
   UserTurn,
 } from "@diagram-4-llm/core";
+import { isUsable } from "@diagram-4-llm/core";
 
 import { Badge } from "#components/ui/badge";
 import { Button } from "#components/ui/button";
@@ -15,13 +17,16 @@ import {
   Paperclip,
   Pencil,
   RotateCcw,
+  ScrollText,
 } from "lucide-react";
 
 import { useEffect, useRef, useState } from "react";
 
 import { siblingsOf } from "../app/branch";
 import { labelOf } from "../app/label";
+import { currentSummaries } from "../app/summaries";
 import { MarkdownContent } from "./MarkdownContent";
+import { SummaryCard } from "./SummaryCard";
 
 interface Props {
   readonly graph: ConversationGraph;
@@ -32,6 +37,17 @@ interface Props {
   readonly onShowTurn: (id: NodeId) => void;
   readonly onEdit: (turn: TurnNode) => void;
   readonly onRegenerate: (userTurnId: NodeId) => void;
+  /** Summarises the branch up to an answer; absent without a provider. */
+  readonly onSummarise: ((answerId: NodeId) => void) | undefined;
+  /** The summary being written, shown after the turn it ends at. */
+  readonly pendingSummary: {
+    readonly toId: NodeId;
+    readonly text: string;
+  } | null;
+  readonly onReviseSummary: (summary: SummaryNode, content: string) => void;
+  /** Nodes attached to the message being written. */
+  readonly attached: readonly NodeId[];
+  readonly onToggleReference: (id: NodeId) => void;
   /**
    * A turn chosen elsewhere, such as on the map, to scroll into view. A new
    * request scrolls again even if it names the same turn.
@@ -59,6 +75,11 @@ export function ReadingPane({
   onShowTurn,
   onEdit,
   onRegenerate,
+  onSummarise,
+  pendingSummary,
+  onReviseSummary,
+  attached,
+  onToggleReference,
   reveal,
   onTurnsInView,
 }: Props) {
@@ -119,6 +140,8 @@ export function ReadingPane({
       </p>
     );
   }
+  const summaries = currentSummaries(graph);
+  const rootId = branch[0]?.id;
   return (
     <ol ref={list} className="flex flex-col gap-5" aria-label="Selected branch">
       {branch.map((turn) => {
@@ -197,6 +220,21 @@ export function ReadingPane({
                   Regenerate
                 </Button>
               )}
+              {!busy &&
+                turn.kind === "assistant" &&
+                isUsable(turn) &&
+                onSummarise !== undefined && (
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => {
+                      onSummarise(turn.id);
+                    }}
+                  >
+                    <ScrollText aria-hidden="true" />
+                    Summarise
+                  </Button>
+                )}
             </header>
             {turn.kind === "assistant" ? (
               <div className="w-full">
@@ -216,6 +254,32 @@ export function ReadingPane({
               </>
             )}
             {turn.kind === "assistant" && <AnswerStatus turn={turn} />}
+            {summaries.get(turn.id)?.map((summary) => (
+              <SummaryCard
+                key={summary.id}
+                summary={summary}
+                fromRoot={summary.covers.fromId === rootId}
+                attached={attached.includes(summary.id)}
+                busy={busy}
+                onToggleReference={() => {
+                  onToggleReference(summary.id);
+                }}
+                onRevise={(content) => {
+                  onReviseSummary(summary, content);
+                }}
+              />
+            ))}
+            {pendingSummary?.toId === turn.id && (
+              <section
+                className="flex flex-col gap-2 rounded-xl border border-dashed px-4 py-3"
+                aria-label="Summary being written"
+              >
+                <p className="text-xs text-muted-foreground" role="status">
+                  Summarising the branch up to here…
+                </p>
+                <MarkdownContent text={pendingSummary.text} />
+              </section>
+            )}
           </li>
         );
       })}
