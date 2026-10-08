@@ -6,6 +6,9 @@ import { expect, test } from "@playwright/test";
 test("skips to the conversation from the first Tab", async ({ page }) => {
   await page.goto("/#/app");
   const skip = page.getByRole("link", { name: "Skip to the conversation" });
+  // The page has loaded before React renders the app, and a Tab pressed in
+  // between finds nothing to focus.
+  await expect(skip).toBeAttached();
 
   await page.keyboard.press("Tab");
   await expect(skip).toBeFocused();
