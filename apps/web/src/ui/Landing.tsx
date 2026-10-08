@@ -100,7 +100,7 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-background/90 px-4 backdrop-blur">
+      <header className="sticky top-0 z-10 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b bg-background/90 px-4 py-2 backdrop-blur">
         <Brand />
         <nav className="flex items-center gap-1" aria-label="Site">
           <Button variant="ghost" asChild>

@@ -18,7 +18,7 @@ interface Props extends ComponentProps<typeof SetupWizard> {
 export function SetupPage({ onOpenDemo, onSkip, demoReady, ...wizard }: Props) {
   return (
     <div className="flex min-h-dvh flex-col bg-muted/40">
-      <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-background px-4">
+      <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b bg-background px-4 py-2">
         <h1>
           <Brand />
         </h1>
