@@ -139,7 +139,8 @@ consecutive weeks and records the friction points in issues.
 - [x] A setup assistant on first start: provider, connection test, models
       chosen from the provider's list
 - [x] A welcome page that explains the app's value and privacy, written as
-      a conversation, leading to the demo or to setup
+      a conversation, leading to the demo or to setup. It opens with an
+      empty field; any key, click or tap types and sends the first question
 - [x] Usable 320 pixels wide (WCAG 1.4.10 reflow): below 800 pixels the
       app shows the conversation list, the conversation or the map, one at
       a time

@@ -43,6 +43,7 @@ test("sets up a local model from the models the server offers, then chats", asyn
   await page.goto("/");
 
   // New visitors land on the welcome page and start setup from there.
+  await page.getByLabel("Next question").click();
   await page.getByRole("button", { name: "Connect a model" }).click();
   await expect(
     page.getByRole("heading", { name: "Where should answers come from?" }),
@@ -85,6 +86,7 @@ test("explains an unreachable server and allows continuing without a test", asyn
 }) => {
   await page.route(OLLAMA_MODELS, (route) => route.abort("failed"));
   await page.goto("/");
+  await page.getByLabel("Next question").click();
   await page.getByRole("button", { name: "Connect a model" }).click();
   await page.getByRole("radio", { name: /^Ollama/ }).check();
   await page.getByRole("button", { name: "Continue" }).click();
@@ -127,6 +129,7 @@ test("tells the user when Anthropic rejects the key", async ({ page }) => {
         }));
   });
   await page.goto("/");
+  await page.getByLabel("Next question").click();
   await page.getByRole("button", { name: "Connect a model" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
 

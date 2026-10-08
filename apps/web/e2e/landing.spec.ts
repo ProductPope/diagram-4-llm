@@ -1,5 +1,52 @@
 import { expect, test } from "@playwright/test";
 
+test("opens with an empty field after a pause, and any key starts the conversation", async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.goto("/");
+  const field = page.getByLabel("Next question");
+  const first = page.getByRole("region", { name: "What is this?" });
+  await expect(page.getByRole("link", { name: "diagram-4-llm" })).toBeVisible();
+  await expect(field).toHaveCount(0);
+
+  await page.clock.runFor(800);
+  await expect(field).toBeVisible();
+  await expect(field).toHaveValue("");
+  await expect(first).toHaveCount(0);
+
+  // The key is not typed: the first question is, one character at a time.
+  await page.keyboard.press("x");
+  const question = "What is this?";
+  for (let length = 1; length <= question.length; length += 1) {
+    await page.clock.runFor(45);
+    await expect(field).toHaveValue(question.slice(0, length));
+  }
+  await expect(first).toHaveCount(0);
+
+  // Once typed, it is sent, and the answer is typed before it shows.
+  await page.clock.runFor(300);
+  await expect(first).toHaveAttribute("data-phase", "typing");
+  await page.clock.runFor(700);
+  await expect(first).toHaveAttribute("data-phase", "answered");
+  await expect(
+    first.getByText("a conversation is a map, not a scroll"),
+  ).toBeVisible();
+  await expect(field).toHaveValue("Why not just keep chatting in one thread?");
+});
+
+test("a click or tap on the empty field starts the conversation", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Next question").click();
+  await expect(
+    page
+      .getByRole("region", { name: "What is this?" })
+      .getByText("a conversation is a map, not a scroll"),
+  ).toBeVisible();
+});
+
 test("welcomes a new visitor with a conversation they move forward", async ({
   page,
 }) => {
@@ -12,6 +59,7 @@ test("welcomes a new visitor with a conversation they move forward", async ({
   const exchange = (question: string) =>
     page.getByRole("region", { name: question });
   const first = exchange("What is this?");
+  await page.getByLabel("Next question").press("Enter");
   await expect(
     first.getByText("a conversation is a map, not a scroll"),
   ).toBeVisible();
@@ -69,12 +117,13 @@ test("welcomes a new visitor with a conversation they move forward", async ({
   // The name in the header leads back to the welcome page.
   await page.getByRole("link", { name: "diagram-4-llm" }).click();
   await expect(page).toHaveURL(/#\/welcome$/);
-  await expect(first).toBeVisible();
+  await expect(page.getByLabel("Next question")).toHaveValue("");
   expect(consoleErrors).toEqual([]);
 });
 
 test("setup can be skipped from any step", async ({ page }) => {
   await page.goto("/");
+  await page.getByLabel("Next question").click();
   await page.getByRole("button", { name: "Connect a model" }).click();
   await page.getByRole("radio", { name: /^Ollama/ }).check();
   await page.getByRole("button", { name: "Continue" }).click();
@@ -88,11 +137,17 @@ test("setup can be skipped from any step", async ({ page }) => {
   await expect(page).toHaveURL(/#\/setup$/);
 });
 
-test("answers without a typing pause when the visitor prefers reduced motion", async ({
+test("starts and answers without pauses or typing when the visitor prefers reduced motion", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.clock.install();
   await page.goto("/");
+  const field = page.getByLabel("Next question");
+  // The clock does not move, so nothing here waits for a timer.
+  await expect(field).toBeVisible();
+  await expect(field).toHaveValue("");
+  await page.keyboard.press("x");
   const first = page.getByRole("region", { name: "What is this?" });
   await expect(first).toBeVisible();
   expect(await first.getAttribute("data-phase")).toBe("answered");
