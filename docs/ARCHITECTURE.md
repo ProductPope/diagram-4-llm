@@ -353,7 +353,11 @@ page. The mitigations are:
   to HTTPS endpoints and local model servers on `localhost`. A static policy
   cannot list each user-configured endpoint, so any HTTPS host is allowed;
   a desktop build (phase 3) can narrow this. An end-to-end test checks that
-  the policy is enforced,
+  the policy is enforced. GitHub Pages cannot set response headers, so the
+  policy is delivered in a `<meta>` element, where browsers ignore
+  `frame-ancestors`: another site can show the app in a frame. Clicks
+  there could be redirected (clickjacking), but the framing site cannot
+  read the app's storage, which is separated by origin,
 - Markdown rendering that produces React elements, never `innerHTML`, with
   raw HTML dropped and link targets sanitised, because model output is
   untrusted input. Images in answers are shown as links instead of being
