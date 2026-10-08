@@ -281,7 +281,7 @@ Browser-specific constraints:
   the title. The request contains only the answer, the title is stored as
   `NodeMeta.title`, and neither is part of any context. Activating a node
   shows its branch in the reading pane, and the selected branch is
-  highlighted. The view refits when turns are added. Manual positioning is
+  highlighted. The view refits when turns are added and when the map changes size. Manual positioning is
   not planned for phase 1. Any node with replies can be collapsed: its
   descendants are hidden from the map and the node shows how many it hides.
   The collapsed flag is node presentation state (`NodeMeta.collapsed`), so it
