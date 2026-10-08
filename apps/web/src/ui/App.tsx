@@ -92,7 +92,7 @@ import { SettingsForm } from "./SettingsForm";
 import { Brand } from "./Brand";
 import { BranchStrip } from "./BranchStrip";
 import { Landing } from "./Landing";
-import { SessionPage } from "./SessionPage";
+import { SessionPage, type TopicModel } from "./SessionPage";
 import { SetupPage } from "./SetupPage";
 
 export interface AppProps {
@@ -884,6 +884,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
   if (page === "session") {
     return (
       <SessionPage
+        topicModel={sessionTopicModel(settings)}
         onBack={() => {
           navigate("app");
         }}
@@ -1455,4 +1456,20 @@ function saveStateText(
     case "failed":
       return "Changes could not be saved";
   }
+}
+
+/**
+ * Topics are found by the model that writes titles, which the user chose
+ * for short helper requests, or else by the first model.
+ */
+function sessionTopicModel(
+  settings: ProviderSettings | null,
+): TopicModel | null {
+  const model = settings?.titleModel ?? settings?.models[0];
+  if (settings === null || model === undefined) return null;
+  return {
+    adapter: createAdapter(settings),
+    model,
+    contextWindow: settings.contextWindows?.[model],
+  };
 }
