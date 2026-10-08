@@ -208,6 +208,10 @@
     @apply font-semibold;
   }
 
+  .map-node-attached {
+    @apply border-dashed border-foreground;
+  }
+
   .map-node-error {
     @apply border-destructive;
   }

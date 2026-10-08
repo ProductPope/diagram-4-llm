@@ -1,4 +1,5 @@
 import {
+  addSummary,
   addUserTurn,
   createConversation,
   finishAssistantTurn,
@@ -77,5 +78,27 @@ describe("labelOf", () => {
 
   it("marks an answer that ended without content", () => {
     expect(labelOf(emptyAnswer(true))).toBe("(empty)");
+  });
+
+  it("shows the start of a summary", () => {
+    const graph = unwrap(
+      addSummary(
+        unwrap(
+          addUserTurn(
+            unwrap(createConversation({ id: "c", title: "t", createdAt: T })),
+            { id: "u", createdAt: T, parentId: null, refs: [], content: "q" },
+          ),
+        ),
+        {
+          id: "s",
+          createdAt: T,
+          covers: { fromId: "u", toId: "u" },
+          content: "The user asked\nabout q.",
+        },
+      ),
+    );
+    const summary = graph.nodes.get("s");
+    if (summary === undefined) throw new Error("no summary");
+    expect(labelOf(summary)).toBe("The user asked about q.");
   });
 });

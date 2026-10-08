@@ -3,16 +3,24 @@ import type {
   ConversationGraph,
   NodeId,
   TurnNode,
+  UserTurn,
 } from "@diagram-4-llm/core";
 
 import { Badge } from "#components/ui/badge";
 import { Button } from "#components/ui/button";
 import { cn } from "#lib/utils";
-import { ChevronLeft, ChevronRight, Pencil, RotateCcw } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Paperclip,
+  Pencil,
+  RotateCcw,
+} from "lucide-react";
 
 import { useEffect, useRef, useState } from "react";
 
 import { siblingsOf } from "../app/branch";
+import { labelOf } from "../app/label";
 import { MarkdownContent } from "./MarkdownContent";
 
 interface Props {
@@ -20,6 +28,8 @@ interface Props {
   readonly branch: readonly TurnNode[];
   readonly busy: boolean;
   readonly onSelect: (anchor: NodeId) => void;
+  /** Shows a turn's branch and scrolls to the turn, as the map does. */
+  readonly onShowTurn: (id: NodeId) => void;
   readonly onEdit: (turn: TurnNode) => void;
   readonly onRegenerate: (userTurnId: NodeId) => void;
   /**
@@ -46,6 +56,7 @@ export function ReadingPane({
   branch,
   busy,
   onSelect,
+  onShowTurn,
   onEdit,
   onRegenerate,
   reveal,
@@ -192,15 +203,88 @@ export function ReadingPane({
                 <MarkdownContent text={turn.content} />
               </div>
             ) : (
-              <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-muted px-4 py-2.5 text-sm whitespace-pre-wrap break-words">
-                {turn.content}
-              </div>
+              <>
+                <References
+                  graph={graph}
+                  turn={turn}
+                  busy={busy}
+                  onShowTurn={onShowTurn}
+                />
+                <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-muted px-4 py-2.5 text-sm whitespace-pre-wrap break-words">
+                  {turn.content}
+                </div>
+              </>
             )}
             {turn.kind === "assistant" && <AnswerStatus turn={turn} />}
           </li>
         );
       })}
     </ol>
+  );
+}
+
+/**
+ * What the user attached to a message, in the order it was sent. A turn
+ * can be opened in its own branch; a summary is not part of any branch.
+ */
+function References({
+  graph,
+  turn,
+  busy,
+  onShowTurn,
+}: {
+  readonly graph: ConversationGraph;
+  readonly turn: UserTurn;
+  readonly busy: boolean;
+  readonly onShowTurn: (id: NodeId) => void;
+}) {
+  if (turn.refs.length === 0) return null;
+  return (
+    <ul
+      className="flex max-w-[85%] flex-wrap justify-end gap-1.5 text-xs"
+      aria-label="Attached"
+    >
+      {turn.refs.map((id) => {
+        const node = graph.nodes.get(id);
+        if (node === undefined) return null;
+        const label = graph.meta.get(id)?.title ?? labelOf(node);
+        const content = (
+          <>
+            <Paperclip aria-hidden="true" />
+            <span className="truncate">
+              {node.kind === "user"
+                ? "You: "
+                : node.kind === "summary"
+                  ? "Summary: "
+                  : ""}
+              {label}
+            </span>
+          </>
+        );
+        return (
+          <li key={id} className="min-w-0">
+            {node.kind === "summary" ? (
+              <span className="flex items-center gap-1 rounded-md border px-2 py-0.5 text-muted-foreground [&_svg]:size-3">
+                {content}
+              </span>
+            ) : (
+              <Button
+                variant="outline"
+                size="xs"
+                className="max-w-full font-normal"
+                disabled={busy}
+                title="Show in its branch"
+                onClick={() => {
+                  onShowTurn(id);
+                }}
+              >
+                {content}
+              </Button>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
