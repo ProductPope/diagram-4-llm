@@ -5,12 +5,12 @@ All notable changes to this project are listed here. The format follows
 [Semantic Versioning](https://semver.org/). While the version is below 1.0,
 the data format and the interface may still change between minor versions.
 
-## [0.1.0] - 2026-10-08
+## [Unreleased]
 
-The first release. Phase 1 of the [plan](docs/PLAN.md) is in progress: you can
-hold branching conversations with an Anthropic model or any OpenAI-compatible
-server, entirely in the browser. Try it at
-https://productpope.github.io/diagram-4-llm/.
+Everything so far, to be released as 0.1.0 when phase 1 of the
+[plan](docs/PLAN.md) ends. You can hold branching conversations with an
+Anthropic model or any OpenAI-compatible server, entirely in the browser. Try
+it at https://productpope.github.io/diagram-4-llm/.
 
 ### Conversations as graphs
 
@@ -71,4 +71,4 @@ https://productpope.github.io/diagram-4-llm/.
 - A [security policy](SECURITY.md) with private vulnerability reporting, and
   weekly Dependabot updates for packages and workflow actions.
 
-[0.1.0]: https://github.com/ProductPope/diagram-4-llm/releases/tag/v0.1.0
+[Unreleased]: https://github.com/ProductPope/diagram-4-llm/commits/main
