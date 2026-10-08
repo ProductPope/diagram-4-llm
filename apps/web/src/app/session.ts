@@ -1,50 +1,8 @@
 import type {
-  ClaudeCodeSession,
   SessionProblem,
   SessionReadError,
   SessionStep,
 } from "@diagram-4-llm/core";
-
-/** The steps of a session as a forest, children in transcript order. */
-export function sessionForest(
-  session: ClaudeCodeSession,
-): Map<string | null, string[]> {
-  const children = new Map<string | null, string[]>();
-  for (const step of session.steps) {
-    children.set(step.parentId, [
-      ...(children.get(step.parentId) ?? []),
-      step.id,
-    ]);
-  }
-  return children;
-}
-
-/**
- * The branch through `id`: the steps from its root to `id`, then on through
- * the latest reply of each step to the end, as the conversation's reading
- * pane does. Empty for an unknown step. The reader puts every parent before
- * its children, so both walks end.
- */
-export function sessionBranch(
-  session: ClaudeCodeSession,
-  id: string,
-): SessionStep[] {
-  const byId = new Map(session.steps.map((step) => [step.id, step]));
-  const children = sessionForest(session);
-  const branch: SessionStep[] = [];
-  let step = byId.get(id);
-  while (step !== undefined) {
-    branch.unshift(step);
-    step = step.parentId === null ? undefined : byId.get(step.parentId);
-  }
-  let last = branch.at(-1);
-  while (last !== undefined) {
-    const next = children.get(last.id)?.at(-1);
-    last = next === undefined ? undefined : byId.get(next);
-    if (last !== undefined) branch.push(last);
-  }
-  return branch;
-}
 
 /** A step's text on one line, for the map. */
 export function stepLabel(step: SessionStep): string {

@@ -1,4 +1,8 @@
-import type { ClaudeCodeSession, SessionStep } from "@diagram-4-llm/core";
+import {
+  sessionForest,
+  type ClaudeCodeSession,
+  type SessionStep,
+} from "@diagram-4-llm/core";
 import {
   Background,
   BackgroundVariant,
@@ -20,7 +24,7 @@ import {
   type Position as Point,
 } from "../app/layout";
 import { neighbour, type Direction } from "../app/navigation";
-import { sessionForest, stepLabel, stepRole } from "../app/session";
+import { stepLabel, stepRole } from "../app/session";
 import { FocusAfterKeyboardMove, FollowBranch } from "./ConversationMap";
 
 interface StepData extends Record<string, unknown> {

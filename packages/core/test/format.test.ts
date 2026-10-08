@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  describeImportError,
   exportConversation,
   importConversation,
   setNodeMeta,
@@ -99,6 +100,20 @@ describe("export and import", () => {
         error: { code: "inconsistent-status", id: "A1" },
       });
     }
+  });
+
+  it("names the failing node or field when describing a rejection", () => {
+    expect(
+      describeImportError({
+        code: "invalid-node",
+        index: 1,
+        nodeId: "U2",
+        error: { code: "unknown-node", id: "A1" },
+      }),
+    ).toMatch(/^Node 1 \(U2\): .*A1/);
+    expect(
+      describeImportError({ code: "invalid-document", issues: "✖ format" }),
+    ).toBe("✖ format");
   });
 
   it("rejects metadata for a node that does not exist", () => {

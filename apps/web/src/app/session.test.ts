@@ -1,22 +1,16 @@
-import type { ClaudeCodeSession, SessionStep } from "@diagram-4-llm/core";
+import type { SessionStep } from "@diagram-4-llm/core";
 import { describe, expect, it } from "vitest";
 
 import {
   describeNotShown,
   describeProblems,
   describeSessionError,
-  sessionForest,
-  sessionBranch,
   stepLabel,
   stepRole,
 } from "./session";
 
 const prompt = (id: string, parentId: string | null, text: string) =>
   ({ kind: "prompt", id, parentId, text, timestamp: null }) as const;
-
-function session(...steps: SessionStep[]): ClaudeCodeSession {
-  return { title: null, steps, notShown: new Map(), problems: [] };
-}
 
 const work: SessionStep = {
   kind: "activity",
@@ -32,27 +26,6 @@ const work: SessionStep = {
 };
 
 describe("session map helpers", () => {
-  it("builds the forest and the branch through a step", () => {
-    const value = session(
-      prompt("p1", null, "Start"),
-      work,
-      prompt("p2", "a1", "Left"),
-      prompt("p3", "a1", "Right"),
-    );
-    expect(sessionForest(value)).toEqual(
-      new Map([
-        [null, ["p1"]],
-        ["p1", ["a1"]],
-        ["a1", ["p2", "p3"]],
-      ]),
-    );
-    const ids = (id: string) => sessionBranch(value, id).map((s) => s.id);
-    expect(ids("p2")).toEqual(["p1", "a1", "p2"]);
-    // From a step with several replies the branch goes on through the latest.
-    expect(ids("p1")).toEqual(["p1", "a1", "p3"]);
-    expect(ids("unknown")).toEqual([]);
-  });
-
   it("labels a step by its last text, or by its tool calls", () => {
     expect(stepLabel(work)).toBe("Done. All good.");
     expect(stepRole(work)).toBe("claude-test · 2 tool calls");

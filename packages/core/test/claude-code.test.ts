@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   readClaudeCodeSession,
+  sessionBranch,
+  sessionForest,
   type ClaudeCodeSession,
   type SessionStep,
 } from "../src/index.js";
@@ -422,5 +424,28 @@ describe("reading a Claude Code session", () => {
         }
       }),
     );
+  });
+});
+
+describe("walking a session", () => {
+  it("builds the forest and the branch through a step", () => {
+    const value = read(
+      prompt("p1", null, "Start"),
+      answer("a1", "p1", "r1", text("Started.")),
+      prompt("p2", "a1", "Left"),
+      prompt("p3", "a1", "Right"),
+    );
+    expect(sessionForest(value)).toEqual(
+      new Map([
+        [null, ["p1"]],
+        ["p1", ["a1"]],
+        ["a1", ["p2", "p3"]],
+      ]),
+    );
+    const ids = (id: string) => sessionBranch(value, id).map((s) => s.id);
+    expect(ids("p2")).toEqual(["p1", "a1", "p2"]);
+    // From a step with several replies the branch goes on through the latest.
+    expect(ids("p1")).toEqual(["p1", "a1", "p3"]);
+    expect(ids("unknown")).toEqual([]);
   });
 });

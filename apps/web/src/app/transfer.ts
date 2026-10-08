@@ -1,10 +1,9 @@
 import {
+  describeImportError,
   exportConversation,
   importConversation,
   type ConversationGraph,
 } from "@diagram-4-llm/core";
-
-import { describeImportError } from "../storage/conversation-store";
 
 /** The exported document, formatted for people who open the file. */
 export function serializeConversation(graph: ConversationGraph): string {

@@ -4,7 +4,13 @@ export { ok, err } from "./result.js";
 export type { GraphError } from "./errors.js";
 export { describeGraphError } from "./errors.js";
 export type { ConversationGraph } from "./graph.js";
-export { childrenOf, isTurn, isUsable, pathTo } from "./graph.js";
+export {
+  childrenOf,
+  currentSummaries,
+  isTurn,
+  isUsable,
+  pathTo,
+} from "./graph.js";
 export type {
   AssembledContext,
   AssemblyOptions,
@@ -36,6 +42,7 @@ export {
 export type { ConversationDocument, ImportError } from "./format.js";
 export {
   conversationDocumentSchema,
+  describeImportError,
   exportConversation,
   FORMAT_ID,
   FORMAT_VERSION,
@@ -48,4 +55,8 @@ export type {
   SessionReadError,
   SessionStep,
 } from "./claude-code.js";
-export { readClaudeCodeSession } from "./claude-code.js";
+export {
+  readClaudeCodeSession,
+  sessionBranch,
+  sessionForest,
+} from "./claude-code.js";
