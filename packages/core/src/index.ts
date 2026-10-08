@@ -13,6 +13,7 @@ export type {
 } from "./context.js";
 export {
   assembleContext,
+  assembleForSummary,
   assembleForUserTurn,
   estimateTokens,
 } from "./context.js";

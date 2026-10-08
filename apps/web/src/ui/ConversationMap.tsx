@@ -1,4 +1,5 @@
 import {
+  isUsable,
   type ConversationGraph,
   type NodeId,
   type TurnNode,
@@ -28,6 +29,7 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   Eye,
+  ScrollText,
   GitFork,
   Paperclip,
   Pencil,
@@ -65,6 +67,7 @@ interface TurnData extends Record<string, unknown> {
   readonly onEdit: (turn: TurnNode) => void;
   readonly onBranchFrom: (answerId: NodeId) => void;
   readonly onToggleReference: (id: NodeId) => void;
+  readonly onSummarise: ((answerId: NodeId) => void) | undefined;
   readonly onFocusTurn: (id: NodeId) => void;
   readonly onNavigate: (id: NodeId, direction: Direction) => void;
 }
@@ -86,6 +89,8 @@ interface Props {
   /** Turns attached to the message being written. */
   readonly attached: readonly NodeId[];
   readonly onToggleReference: (id: NodeId) => void;
+  /** Summarises the branch up to an answer; absent without a provider. */
+  readonly onSummarise: ((answerId: NodeId) => void) | undefined;
 }
 
 const nodeTypes = { turn: TurnNodeView };
@@ -117,6 +122,7 @@ export function ConversationMap({
   attachTo,
   attached,
   onToggleReference,
+  onSummarise,
 }: Props) {
   const [focusId, setFocusId] = useState<NodeId | null>(null);
   const [keyboardMove, setKeyboardMove] = useState<{
@@ -201,6 +207,7 @@ export function ConversationMap({
         onEdit,
         onBranchFrom,
         onToggleReference,
+        onSummarise,
         onFocusTurn: setFocusId,
         onNavigate,
       },
@@ -323,6 +330,7 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
     onEdit,
     onBranchFrom,
     onToggleReference,
+    onSummarise,
     onFocusTurn,
     onNavigate,
   } = data;
@@ -410,6 +418,17 @@ function TurnNodeView({ data }: NodeProps<TurnFlowNode>) {
               ? "Remove from your message"
               : "Attach to your message"}
           </ContextMenuItem>
+          {turn.kind === "assistant" && onSummarise !== undefined && (
+            <ContextMenuItem
+              disabled={!isUsable(turn)}
+              onSelect={() => {
+                onSummarise(turn.id);
+              }}
+            >
+              <ScrollText aria-hidden="true" />
+              Summarise the branch up to here
+            </ContextMenuItem>
+          )}
           {turn.kind === "user" && (
             <ContextMenuItem
               onSelect={() => {

@@ -1,12 +1,15 @@
 import {
+  addSummary,
   createConversation,
   describeGraphError,
   isUsable,
+  pathTo,
   renameConversation,
   setNodeMeta,
   type ConversationGraph,
   type GraphError,
   type NodeId,
+  type SummaryNode,
   type TurnNode,
 } from "@diagram-4-llm/core";
 import { Alert, AlertDescription } from "#components/ui/alert";
@@ -59,6 +62,7 @@ import {
 } from "../chat/generate";
 import { uuidv7 } from "../chat/ids";
 import { createStore, type Store } from "../chat/store";
+import { summarise } from "../chat/summary";
 import { titleAnswer } from "../chat/title";
 import {
   describeStorageError,
@@ -158,6 +162,10 @@ export function App({ openStore, settingsStorage }: AppProps) {
   const [draft, setDraft] = useState("");
   // Turns attached to the message being written, sent in this order.
   const [refs, setRefs] = useState<readonly NodeId[]>([]);
+  const [pendingSummary, setPendingSummary] = useState<{
+    readonly toId: NodeId;
+    readonly text: string;
+  } | null>(null);
   const [controller, setController] = useState<AbortController | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [modelChoice, setModelChoice] = useState<string | null>(null);
@@ -424,6 +432,58 @@ export function App({ openStore, settingsStorage }: AppProps) {
         );
       return answered;
     });
+  };
+
+  // A summary always covers the branch from its first message, so that it
+  // can stand in for the whole branch when it is attached elsewhere.
+  const summariseBranch = (answerId: NodeId) => {
+    if (settings === null || current === null) return;
+    const path = pathTo(current.get(), answerId);
+    const fromId = path.ok ? path.value[0]?.id : undefined;
+    if (fromId === undefined) return;
+    const store = current;
+    const answerSettings = generation(settings);
+    setPendingSummary({ toId: answerId, text: "" });
+    run(async (signal) => {
+      const summarised = await summarise(
+        store,
+        { fromId, toId: answerId },
+        answerSettings,
+        env,
+        signal,
+        (text) => {
+          setPendingSummary({ toId: answerId, text });
+        },
+      );
+      setPendingSummary(null);
+      if (!summarised.ok)
+        setError(
+          `The summary could not be written: ${summarised.error.message}`,
+        );
+      return { ok: true };
+    });
+  };
+
+  // An edit is a new summary that revises the old one. If the old one is
+  // attached to the message being written, the edit takes its place.
+  const reviseSummary = (summary: SummaryNode, content: string) => {
+    if (current === null) return;
+    const id = env.newId();
+    const revised = addSummary(current.get(), {
+      id,
+      createdAt: env.now(),
+      covers: summary.covers,
+      content,
+      revises: summary.id,
+    });
+    if (!revised.ok) {
+      setError(describeGraphError(revised.error));
+      return;
+    }
+    current.set(revised.value);
+    setRefs((previous) =>
+      previous.map((ref) => (ref === summary.id ? id : ref)),
+    );
   };
 
   // The new version starts with the original's attachments, which the
@@ -793,6 +853,13 @@ export function App({ openStore, settingsStorage }: AppProps) {
               }}
               onEdit={startEditing}
               onRegenerate={regenerate}
+              onSummarise={settings === null ? undefined : summariseBranch}
+              pendingSummary={pendingSummary}
+              onReviseSummary={reviseSummary}
+              attached={refs}
+              onToggleReference={(id) => {
+                setRefs((previous) => toggleReference(previous, id));
+              }}
               reveal={reveal}
               onTurnsInView={stripShown ? setTurnsInView : undefined}
             />
@@ -917,6 +984,16 @@ export function App({ openStore, settingsStorage }: AppProps) {
         onToggleReference={(id) => {
           setRefs((previous) => toggleReference(previous, id));
         }}
+        onSummarise={
+          settings === null
+            ? undefined
+            : (answerId) => {
+                if (busy) return;
+                setView("conversation");
+                setAnchor(answerId);
+                summariseBranch(answerId);
+              }
+        }
       />
     );
   const map = narrow ? (

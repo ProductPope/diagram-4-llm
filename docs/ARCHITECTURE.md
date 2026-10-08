@@ -192,6 +192,12 @@ from the user's own words:
 </context>
 ```
 
+`assembleForSummary` builds the request for a summary of a path segment:
+the segment's turns, rendered as above, each wrapped in a
+`<turn role="…">` block, all in one user message, with the summary
+instruction as the system prompt. One message is used because a segment
+can start with an answer. See [ADR 0008](adr/0008-generating-summaries.md).
+
 The function never drops, truncates or reorders content. The caller compares
 `estimatedInputTokens` with the model's context window and blocks sending
 when the estimate exceeds it.
@@ -314,7 +320,13 @@ Browser-specific constraints:
   sibling instead of changing anything. Answers are rendered as Markdown
   (`apps/web/src/ui/MarkdownContent.tsx`); the user's own messages as plain
   text, with the turns attached to them listed above; choosing one shows
-  it in its own branch.
+  it in its own branch. "Summarise" on an answer (also in the map's
+  context menu) asks the model for a summary of the branch from its first
+  message to that answer, written out as it streams and saved only when
+  the model finishes it (`apps/web/src/chat/summary.ts`). Summaries are
+  shown after the answer they end at, newest revision only, rendered as
+  Markdown. Each can be edited, which saves a revision, and attached to the
+  message being written like a turn.
 - **Composer:** sends to the selected node's branch. Shows the references
   attached to the draft, in the order they are sent, each with a button
   to remove it. A new version of a message starts with the original's

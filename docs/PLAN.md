@@ -176,7 +176,10 @@ through keyboard and mouse in under 10 seconds by a user who knows the app.
       to the message being written (map context menu or the A key),
       shown in the composer and on the sent message, and removed before
       sending
-- [ ] Summary nodes
+- [x] Summary nodes: "Summarise" on an answer writes a summary of the
+      branch up to it with the model chosen for the next answer; it can
+      be edited (saved as a revision) and attached to a message on
+      another branch ([ADR 0008](adr/0008-generating-summaries.md))
 - [ ] Merge workflows
 - [ ] Token budget warnings
 - [ ] Suggested branches

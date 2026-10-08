@@ -49,7 +49,11 @@ export function AttachedReferences({ graph, refs, onPath, onRemove }: Props) {
             >
               <Paperclip className="size-3 shrink-0" aria-hidden="true" />
               <span className="truncate">
-                {node?.kind === "user" ? "You: " : ""}
+                {node?.kind === "user"
+                  ? "You: "
+                  : node?.kind === "summary"
+                    ? "Summary: "
+                    : ""}
                 {label}
               </span>
               {onPath.has(id) && (
