@@ -1,0 +1,35 @@
+name: Bug report
+description: Something in the app does not work as described.
+labels: [bug]
+body:
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Start from a fresh page load if you can.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+      description: Include any error shown in the app or in the browser console.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser, provider and model
+      placeholder: Firefox 140, Ollama, llama3.2
+  - type: checkboxes
+    id: data-loss
+    attributes:
+      label: Data loss
+      options:
+        - label: A conversation or part of it was lost or overwritten.
