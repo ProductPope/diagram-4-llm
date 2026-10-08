@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { err, ok } from "@diagram-4-llm/core";
 
 import {
+  listModels,
   loadSettings,
   parseModelList,
   saveSettings,
@@ -187,6 +188,27 @@ describe("provider settings", () => {
       memoryKeyStore(),
     );
     expect(loadSettings(storage, memoryKeyStore())).toBeNull();
+  });
+
+  it("lists OpenAI-compatible models through the server fetch when given one", async () => {
+    const urls: string[] = [];
+    const serverFetch: typeof fetch = (input) => {
+      urls.push(input instanceof Request ? input.url : input.toString());
+      return Promise.resolve(
+        new Response(JSON.stringify({ data: [{ id: "local-model" }] })),
+      );
+    };
+    const listed = await listModels(
+      {
+        adapter: "openai-compatible",
+        baseUrl: "http://localhost:1234/v1",
+        apiKey: "",
+      },
+      new AbortController().signal,
+      serverFetch,
+    );
+    expect(listed).toEqual(ok(["local-model"]));
+    expect(urls).toEqual(["http://localhost:1234/v1/models"]);
   });
 });
 

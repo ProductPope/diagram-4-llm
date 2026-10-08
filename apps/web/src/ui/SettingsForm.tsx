@@ -17,6 +17,8 @@ import { parseModelList, type ProviderSettings } from "../app/settings";
 
 interface Props {
   readonly initial: ProviderSettings | null;
+  /** In the desktop app the key is kept in the system keychain. */
+  readonly keyInKeychain: boolean;
   readonly onSave: (settings: ProviderSettings) => void;
   readonly onCancel: () => void;
   readonly onStartSetup: () => void;
@@ -24,6 +26,7 @@ interface Props {
 
 export function SettingsForm({
   initial,
+  keyInKeychain,
   onSave,
   onCancel,
   onStartSetup,
@@ -88,8 +91,9 @@ export function SettingsForm({
         <CardHeader>
           <CardTitle>Settings</CardTitle>
           <CardDescription>
-            Where answers come from. Everything here is stored only in this
-            browser.
+            {keyInKeychain
+              ? "Where answers come from. The API key is stored in your system's keychain, everything else only in this app."
+              : "Where answers come from. Everything here is stored only in this browser."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5 pt-5">
@@ -144,9 +148,9 @@ export function SettingsForm({
               }}
             />
             <p className="text-xs text-muted-foreground">
-              The key is stored in this browser and sent only to the provider
-              you configure. Anyone who can run scripts on this page could read
-              it.
+              {keyInKeychain
+                ? "The key is stored in your system's keychain and sent only to the provider you configure."
+                : "The key is stored in this browser and sent only to the provider you configure. Anyone who can run scripts on this page could read it."}
             </p>
           </div>
           <div className="flex flex-col gap-2">
