@@ -1,5 +1,8 @@
 # diagram-4-llm
 
+[![CI](https://github.com/ProductPope/diagram-4-llm/actions/workflows/ci.yml/badge.svg)](https://github.com/ProductPope/diagram-4-llm/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A local-first chat client for LLMs in which a conversation is a graph, not a
 scroll. Fork at any message, see every branch on a canvas, and control
 exactly what context each branch sends to the model.
@@ -12,6 +15,8 @@ exactly what context each branch sends to the model.
 
 **Try it:** https://productpope.github.io/diagram-4-llm/ (runs entirely in
 your browser; bring an Anthropic API key or a local model server).
+
+![The demo conversation: the selected branch in the middle and the conversation's tree on the right](apps/web/public/social-preview.png)
 
 ## The problem
 
@@ -52,6 +57,7 @@ graph TD
 - [Product plan](docs/PLAN.md): problem, principles, phases, risks, open questions
 - [Architecture](docs/ARCHITECTURE.md): data model, invariants, context assembly, security, testing
 - [Decision records](docs/adr/)
+- [Contributing](CONTRIBUTING.md) and the [security policy](SECURITY.md)
 
 ## Development
 
@@ -64,6 +70,13 @@ pnpm check   # typecheck, lint, format check, tests and build
 pnpm e2e     # end-to-end tests against the production build (Playwright)
 pnpm --filter @diagram-4-llm/web dev   # run the web app locally
 ```
+
+The code is in two packages:
+
+| Path                             | Contents                                                                            |
+| -------------------------------- | ----------------------------------------------------------------------------------- |
+| [`packages/core`](packages/core) | Graph model, invariants, context assembly and data format. Pure TypeScript, no I/O. |
+| [`apps/web`](apps/web)           | Browser app: chat, branching, context inspector, provider adapters and storage.     |
 
 ### Connecting a model
 
@@ -98,11 +111,6 @@ to keep it that way.
 End-to-end tests need Chromium for the installed Playwright version
 (`pnpm --filter @diagram-4-llm/web exec playwright install chromium`). To use
 an existing Chromium instead, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to its path.
-
-| Path                             | Contents                                                                            |
-| -------------------------------- | ----------------------------------------------------------------------------------- |
-| [`packages/core`](packages/core) | Graph model, invariants, context assembly and data format. Pure TypeScript, no I/O. |
-| [`apps/web`](apps/web)           | Browser app: chat, branching, context inspector, provider adapters and storage.     |
 
 ## How this project is built
 
