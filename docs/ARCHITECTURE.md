@@ -261,7 +261,16 @@ Browser-specific constraints:
 - **Layout:** sidebar, conversation and map side by side, with the map on
   the right as artifact panes are in chat apps. The widths are adjustable
   with the mouse or the keyboard (shadcn's `resizable`, built on
-  `react-resizable-panels`) and kept in local storage.
+  `react-resizable-panels`) and kept in local storage. On a wide screen the
+  map can be minimized to a narrow strip on the right
+  (`apps/web/src/ui/BranchStrip.tsx`): one marker per turn of the selected
+  branch, questions drawn on the right and answers across, as in the
+  reading pane. The turns on screen in the conversation are highlighted
+  (an `IntersectionObserver` in the reading pane, active only while the
+  strip is shown), and activating a marker scrolls the conversation to its
+  turn. The strip changes with the branch as messages are added or another
+  branch is chosen. Whether the map is minimized is kept in local storage,
+  and the panel widths of each arrangement are kept separately.
 - **Canvas:** React Flow renders the tree; the layout is computed by the
   app (`apps/web/src/app/layout.ts`) as a tidy tree: each leaf gets a column,
   each parent is centred over its children, each depth is a row. Nodes are
