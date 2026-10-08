@@ -143,6 +143,8 @@ consecutive weeks and records the friction points in issues.
 - [x] Usable 320 pixels wide (WCAG 1.4.10 reflow): below 800 pixels the
       app shows the conversation list, the conversation or the map, one at
       a time
+- [x] A link to skip to the conversation, first in the tab order of the
+      app (WCAG 2.4.1 bypass blocks)
 - [x] Performance checked with a 1,000-turn conversation (render and branch
       switch budgets in an end-to-end test; panning frame rate not measured)
 
