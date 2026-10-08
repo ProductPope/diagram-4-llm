@@ -5,7 +5,11 @@
 @custom-variant dark (@media (prefers-color-scheme: dark));
 
 /* Tokens of the shadcn/ui "nova" preset, plus --branch, which highlights
-   the selected branch on the map and in the reading pane. */
+   the selected branch on the map and in the reading pane. --ring differs
+   from the preset: components draw focus rings at half its opacity, and
+   the preset's grey then has a contrast of under 2:1 with the page, below
+   the 3:1 that WCAG 1.4.11 asks of a focus indicator. The foreground
+   colour at half opacity gives at least 3.6:1 on every surface. */
 :root {
   color-scheme: light dark;
   --border: oklch(0.922 0 0);
@@ -25,7 +29,7 @@
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: oklch(0.145 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -62,7 +66,7 @@
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
+    --ring: oklch(0.985 0 0);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
