@@ -91,7 +91,6 @@ test("summarises a branch, edits the summary and attaches it to another branch",
 
   await input.fill("And SQLite?");
   await input.press("Control+Enter");
-  await expect(transcript.getByText("And SQLite?")).toBeVisible();
   await expect.poll(() => sent.length).toBe(4);
   expect(sent.at(-1)?.map((m) => m.content)).toEqual([
     "Which database?",

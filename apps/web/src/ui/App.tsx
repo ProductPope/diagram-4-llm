@@ -26,6 +26,7 @@ import {
   CircleAlert,
   Download,
   GitFork,
+  MessageSquarePlus,
   PanelRightClose,
   Plus,
   Settings2,
@@ -38,6 +39,7 @@ import { useDefaultLayout } from "react-resizable-panels";
 
 import { visibleBranch } from "../app/branch";
 import { referencesOnPath, toggleReference } from "../app/references";
+import { currentSummaries } from "../app/summaries";
 import { DEMO_CONVERSATION_ID, demoConversation } from "../app/demo";
 import {
   exportFileName,
@@ -94,11 +96,12 @@ type StorageState =
 
 /**
  * The composer writing somewhere other than the end of the branch: a new
- * version of an existing message, or a new message after an earlier answer.
- * Either way the original turns stay as they are.
+ * version of an existing message, a new message after an earlier answer,
+ * or a new first message that sees only what is attached to it. Either way
+ * the original turns stay as they are.
  */
 interface Editing {
-  readonly kind: "edit" | "branch";
+  readonly kind: "edit" | "branch" | "root";
   readonly parentId: NodeId | null;
   readonly content: string;
 }
@@ -162,10 +165,9 @@ export function App({ openStore, settingsStorage }: AppProps) {
   const [draft, setDraft] = useState("");
   // Turns attached to the message being written, sent in this order.
   const [refs, setRefs] = useState<readonly NodeId[]>([]);
-  const [pendingSummary, setPendingSummary] = useState<{
-    readonly toId: NodeId;
-    readonly text: string;
-  } | null>(null);
+  const [pendingSummary, setPendingSummary] = useState<PendingSummary | null>(
+    null,
+  );
   const [controller, setController] = useState<AbortController | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [modelChoice, setModelChoice] = useState<string | null>(null);
@@ -435,15 +437,15 @@ export function App({ openStore, settingsStorage }: AppProps) {
   };
 
   // A summary always covers the branch from its first message, so that it
-  // can stand in for the whole branch when it is attached elsewhere.
-  const summariseBranch = (answerId: NodeId) => {
+  // can stand in for the whole branch when it is attached elsewhere. With
+  // `attach`, the finished summary is attached to the message being written.
+  const summariseBranch = (answerId: NodeId, attach: boolean) => {
     if (settings === null || current === null) return;
-    const path = pathTo(current.get(), answerId);
-    const fromId = path.ok ? path.value[0]?.id : undefined;
+    const fromId = firstTurnOf(current.get(), answerId);
     if (fromId === undefined) return;
     const store = current;
     const answerSettings = generation(settings);
-    setPendingSummary({ toId: answerId, text: "" });
+    setPendingSummary({ toId: answerId, text: "", attach });
     run(async (signal) => {
       const summarised = await summarise(
         store,
@@ -452,7 +454,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
         env,
         signal,
         (text) => {
-          setPendingSummary({ toId: answerId, text });
+          setPendingSummary({ toId: answerId, text, attach });
         },
       );
       setPendingSummary(null);
@@ -460,8 +462,30 @@ export function App({ openStore, settingsStorage }: AppProps) {
         setError(
           `The summary could not be written: ${summarised.error.message}`,
         );
+      else if (attach && summarised.value !== null) {
+        const id = summarised.value;
+        setRefs((previous) => [...previous, id]);
+      }
       return { ok: true };
     });
+  };
+
+  // Brings a branch into the message being written as its summary: the
+  // current one if the branch has one, otherwise a new one.
+  const attachBranchSummary = (answerId: NodeId) => {
+    if (current === null) return;
+    const latest = current.get();
+    const fromId = firstTurnOf(latest, answerId);
+    const existing = currentSummaries(latest)
+      .get(answerId)
+      ?.findLast((summary) => summary.covers.fromId === fromId);
+    if (existing === undefined) {
+      summariseBranch(answerId, true);
+      return;
+    }
+    setRefs((previous) =>
+      previous.includes(existing.id) ? previous : [...previous, existing.id],
+    );
   };
 
   // An edit is a new summary that revises the old one. If the old one is
@@ -507,14 +531,25 @@ export function App({ openStore, settingsStorage }: AppProps) {
     setAnchor(answerId);
     setEditing({ kind: "branch", parentId: answerId, content: "" });
     setDraft("");
-    setRefs([]);
     setComposerKey((key) => key + 1);
   };
 
+  // A first message continues nothing, so the model sees only the message
+  // and what is attached to it, such as summaries of the branches it
+  // brings together. Attachments made before are kept for that reason.
+  const startRoot = () => {
+    setView("conversation");
+    setEditing({ kind: "root", parentId: null, content: "" });
+    setDraft("");
+    setComposerKey((key) => key + 1);
+  };
+
+  // Attachments belong to the message being written, so they stay, except
+  // the ones a new version of a message started with.
   const cancelEditing = () => {
+    if (editing?.kind === "edit") setRefs([]);
     setEditing(null);
     setDraft("");
-    setRefs([]);
     setComposerKey((key) => key + 1);
   };
 
@@ -837,10 +872,21 @@ export function App({ openStore, settingsStorage }: AppProps) {
               <h2 className="truncate font-heading text-lg font-semibold tracking-tight">
                 {graph.conversation.title}
               </h2>
-              <Button variant="outline" size="sm" onClick={exportCurrent}>
-                <Download aria-hidden="true" />
-                Export conversation
-              </Button>
+              <span className="flex shrink-0 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={startRoot}
+                >
+                  <MessageSquarePlus aria-hidden="true" />
+                  New first message
+                </Button>
+                <Button variant="outline" size="sm" onClick={exportCurrent}>
+                  <Download aria-hidden="true" />
+                  Export conversation
+                </Button>
+              </span>
             </div>
             <ReadingPane
               graph={graph}
@@ -853,7 +899,13 @@ export function App({ openStore, settingsStorage }: AppProps) {
               }}
               onEdit={startEditing}
               onRegenerate={regenerate}
-              onSummarise={settings === null ? undefined : summariseBranch}
+              onSummarise={
+                settings === null
+                  ? undefined
+                  : (answerId) => {
+                      summariseBranch(answerId, false);
+                    }
+              }
               pendingSummary={pendingSummary}
               onReviseSummary={reviseSummary}
               attached={refs}
@@ -872,12 +924,10 @@ export function App({ openStore, settingsStorage }: AppProps) {
           {editing !== null && (
             <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2 text-sm">
               <p className="text-muted-foreground">
-                {editing.kind === "edit"
-                  ? "Editing creates a new version of the message; the original stays in the conversation."
-                  : "New branch from the selected answer. The model sees the conversation up to that answer, and nothing after it."}
+                {editingNotice[editing.kind]}
               </p>
               <Button variant="ghost" size="sm" onClick={cancelEditing}>
-                {editing.kind === "edit" ? "Cancel editing" : "Cancel branch"}
+                {cancelLabel[editing.kind]}
               </Button>
             </div>
           )}
@@ -885,6 +935,9 @@ export function App({ openStore, settingsStorage }: AppProps) {
             <AttachedReferences
               graph={graph}
               refs={refs}
+              pending={
+                pendingSummary?.attach === true ? pendingSummary.toId : null
+              }
               onPath={refsOnPath}
               onRemove={(id) => {
                 setRefs((previous) => previous.filter((ref) => ref !== id));
@@ -991,7 +1044,14 @@ export function App({ openStore, settingsStorage }: AppProps) {
                 if (busy) return;
                 setView("conversation");
                 setAnchor(answerId);
-                summariseBranch(answerId);
+                summariseBranch(answerId, false);
+              }
+        }
+        onAttachSummary={
+          settings === null
+            ? undefined
+            : (answerId) => {
+                if (!busy) attachBranchSummary(answerId);
               }
         }
       />
@@ -1149,6 +1209,33 @@ export function App({ openStore, settingsStorage }: AppProps) {
     </div>
   );
 }
+
+/** A summary being written, shown after the answer it ends at. */
+interface PendingSummary {
+  readonly toId: NodeId;
+  readonly text: string;
+  /** Attached to the message being written once it is finished. */
+  readonly attach: boolean;
+}
+
+/** The first message of the branch that ends at `id`. */
+function firstTurnOf(graph: ConversationGraph, id: NodeId): NodeId | undefined {
+  const path = pathTo(graph, id);
+  return path.ok ? path.value[0]?.id : undefined;
+}
+
+const editingNotice: Readonly<Record<Editing["kind"], string>> = {
+  edit: "Editing creates a new version of the message; the original stays in the conversation.",
+  branch:
+    "New branch from the selected answer. The model sees the conversation up to that answer, and nothing after it.",
+  root: "New first message. The model sees only this message and what you attach to it, such as summaries of other branches.",
+};
+
+const cancelLabel: Readonly<Record<Editing["kind"], string>> = {
+  edit: "Cancel editing",
+  branch: "Cancel branch",
+  root: "Cancel new message",
+};
 
 /**
  * Where a new message continues the branch: after its last answer, or as a
