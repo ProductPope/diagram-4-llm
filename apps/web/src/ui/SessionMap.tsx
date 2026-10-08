@@ -1,8 +1,4 @@
-import {
-  sessionForest,
-  type ClaudeCodeSession,
-  type SessionStep,
-} from "@diagram-4-llm/core";
+import { sessionForest, type SessionStep } from "@diagram-4-llm/core";
 import {
   Background,
   BackgroundVariant,
@@ -41,7 +37,8 @@ interface StepData extends Record<string, unknown> {
 type StepFlowNode = Node<StepData, "step">;
 
 interface Props {
-  readonly session: ClaudeCodeSession;
+  /** Parents before children. */
+  readonly steps: readonly SessionStep[];
   readonly branch: readonly SessionStep[];
   readonly selectedId: string;
   readonly onSelect: (id: string) => void;
@@ -57,17 +54,17 @@ const KEY_DIRECTIONS: Readonly<Record<string, Direction>> = {
 };
 
 /**
- * A Claude Code session as a tree, read-only. It is laid out and navigated
- * like the conversation map: arrow keys move along the tree, and
- * activating a step shows its branch next to the map.
+ * A Claude Code session or a Claude.ai conversation as a tree, read-only.
+ * It is laid out and navigated like the conversation map: arrow keys move
+ * along the tree, and activating a step shows its branch next to the map.
  */
-export function SessionMap({ session, branch, selectedId, onSelect }: Props) {
+export function SessionMap({ steps, branch, selectedId, onSelect }: Props) {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [keyboardMove, setKeyboardMove] = useState<{
     readonly id: string;
     readonly position: Point;
   } | null>(null);
-  const children = sessionForest(session);
+  const children = sessionForest({ steps });
   const positions = layoutForest(children);
   const onBranch = new Set(branch.map((step) => step.id));
   const activeId =
@@ -82,7 +79,7 @@ export function SessionMap({ session, branch, selectedId, onSelect }: Props) {
 
   const nodes: StepFlowNode[] = [];
   const edges: Edge[] = [];
-  for (const step of session.steps) {
+  for (const step of steps) {
     const position = positions.get(step.id);
     if (position === undefined) continue;
     nodes.push({

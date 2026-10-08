@@ -2,6 +2,9 @@ import type { SessionStep } from "@diagram-4-llm/core";
 import { describe, expect, it } from "vitest";
 
 import {
+  describeExportError,
+  describeExportProblems,
+  describeHiddenContent,
   describeNotShown,
   describeProblems,
   describeSessionError,
@@ -78,5 +81,30 @@ describe("session map helpers", () => {
     ).toBe(
       "The file is not a Claude Code session transcript: line 1: The line has no type.",
     );
+  });
+
+  it("describes what a Claude.ai conversation leaves out", () => {
+    expect(describeHiddenContent(new Map())).toBeNull();
+    expect(
+      describeHiddenContent(
+        new Map([
+          ["empty answer", 1],
+          ["thinking", 1200],
+        ]),
+      ),
+    ).toBe("Content not on the map, by kind: thinking 1,200, empty answer 1.");
+  });
+
+  it("describes the parts of an export that could not be read", () => {
+    expect(describeExportProblems([])).toBeNull();
+    expect(describeExportProblems(["A", "B"])).toBe(
+      "2 parts of the export could not be read and are not shown. The first: A",
+    );
+    expect(describeExportError({ code: "not-an-export" })).toBe(
+      "The file is not the conversations.json of a Claude.ai data export.",
+    );
+    expect(
+      describeExportError({ code: "no-conversations", problems: ["A"] }),
+    ).toBe("No conversation in the export could be read. The first problem: A");
   });
 });

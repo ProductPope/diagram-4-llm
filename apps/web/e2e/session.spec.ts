@@ -79,10 +79,12 @@ function transcript(): string {
 
 test("maps a Claude Code session transcript, read-only", async ({ page }) => {
   await page.goto("/#/app");
-  await page.getByRole("button", { name: "Map a Claude Code session" }).click();
+  await page
+    .getByRole("button", { name: "Map a session or Claude.ai export" })
+    .click();
   await expect(page).toHaveURL(/#\/session$/);
 
-  await page.getByLabel("Open a session transcript").setInputFiles({
+  await page.getByLabel("Open a transcript or export").setInputFiles({
     name: "session.jsonl",
     mimeType: "application/jsonl",
     buffer: Buffer.from(transcript()),
@@ -131,7 +133,7 @@ test("maps a Claude Code session transcript, read-only", async ({ page }) => {
 
 test("explains a file that is not a session transcript", async ({ page }) => {
   await page.goto("/#/session");
-  await page.getByLabel("Open a session transcript").setInputFiles({
+  await page.getByLabel("Open a transcript or export").setInputFiles({
     name: "notes.jsonl",
     mimeType: "application/jsonl",
     buffer: Buffer.from('{"name": "not a session"}\n'),
@@ -152,8 +154,10 @@ test("divides the selected branch into topics on request", async ({ page }) => {
   );
   await page.goto("/#/app");
   await configureProvider(page);
-  await page.getByRole("button", { name: "Map a Claude Code session" }).click();
-  await page.getByLabel("Open a session transcript").setInputFiles({
+  await page
+    .getByRole("button", { name: "Map a session or Claude.ai export" })
+    .click();
+  await page.getByLabel("Open a transcript or export").setInputFiles({
     name: "session.jsonl",
     mimeType: "application/jsonl",
     buffer: Buffer.from(transcript()),
@@ -190,7 +194,7 @@ test("divides the selected branch into topics on request", async ({ page }) => {
 
 test("asks for a provider before topics can be detected", async ({ page }) => {
   await page.goto("/#/session");
-  await page.getByLabel("Open a session transcript").setInputFiles({
+  await page.getByLabel("Open a transcript or export").setInputFiles({
     name: "session.jsonl",
     mimeType: "application/jsonl",
     buffer: Buffer.from(transcript()),
@@ -200,5 +204,122 @@ test("asks for a provider before topics can be detected", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Detect topics" })).toHaveCount(
     0,
+  );
+});
+
+/** Two made-up conversations in the shape of a Claude.ai data export. */
+function claudeAiExport(): string {
+  const ROOT = "00000000-0000-4000-8000-000000000000";
+  const message = (
+    uuid: string,
+    parent: string,
+    sender: "human" | "assistant",
+    content: unknown[],
+  ) => ({
+    uuid,
+    parent_message_uuid: parent,
+    sender,
+    text: "",
+    content,
+    created_at: "2026-10-08T12:00:00Z",
+    attachments: [],
+    files: [],
+  });
+  const text = (value: string) => ({ type: "text", text: value });
+  return JSON.stringify([
+    {
+      uuid: "c1",
+      name: "Garden plans",
+      updated_at: "2026-10-01T00:00:00Z",
+      chat_messages: [
+        message("h1", ROOT, "human", [text("What should I plant?")]),
+        message("a1", "h1", "assistant", [text("Try tomatoes.")]),
+      ],
+    },
+    {
+      uuid: "c2",
+      name: "Trip to the coast",
+      updated_at: "2026-10-05T00:00:00Z",
+      chat_messages: [
+        message("h1", ROOT, "human", [text("Where should we stop?")]),
+        message("a1", "h1", "assistant", [
+          { type: "thinking", thinking: "Hidden", summaries: [] },
+          {
+            type: "tool_use",
+            id: "t1",
+            name: "web_search",
+            input: { query: "coast towns" },
+          },
+          {
+            type: "tool_result",
+            tool_use_id: "t1",
+            content: [text("A harbour town.")],
+            is_error: false,
+          },
+          text("Stop at the **harbour**."),
+        ]),
+      ],
+    },
+    {
+      uuid: "c3",
+      name: "Never answered",
+      updated_at: "2026-09-01T00:00:00Z",
+      chat_messages: [],
+    },
+    { uuid: "broken" },
+  ]);
+}
+
+test("maps the conversations of a Claude.ai export", async ({ page }) => {
+  await page.goto("/#/session");
+  await page.getByLabel("Open a transcript or export").setInputFiles({
+    name: "conversations.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(claudeAiExport()),
+  });
+
+  // The most recently updated conversation opens first.
+  await expect(
+    page.getByRole("heading", { name: "Trip to the coast" }),
+  ).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText(
+    "1 part of the export could not be read and is not shown. The first: Conversation 4 could not be read",
+  );
+  await expect(
+    page.getByText("Content not on the map, by kind: thinking 1."),
+  ).toBeVisible();
+  const branch = page.getByRole("list", { name: "Selected branch" });
+  await expect(branch.getByText("Where should we stop?")).toBeVisible();
+  await expect(branch.locator("strong", { hasText: "harbour" })).toBeVisible();
+  await branch.getByText("web_search").click();
+  await expect(branch.getByText("A harbour town.")).toBeVisible();
+
+  await page.getByLabel("Conversation").selectOption("Garden plans");
+  await expect(
+    page.getByRole("heading", { name: "Garden plans" }),
+  ).toBeVisible();
+  await expect(branch.getByText("Try tomatoes.")).toBeVisible();
+  await expect(branch.getByText("Where should we stop?")).toHaveCount(0);
+  const map = page.getByRole("region", { name: "Session map" });
+  await expect(map.locator(".map-node")).toHaveCount(2);
+
+  await page.getByLabel("Conversation").selectOption("Never answered");
+  await expect(
+    page.getByText("This conversation has nothing to show on the map."),
+  ).toBeVisible();
+  await expect(map).toHaveCount(0);
+});
+
+test("explains a JSON file that is not a Claude.ai export", async ({
+  page,
+}) => {
+  await page.goto("/#/session");
+  await page.getByLabel("Open a transcript or export").setInputFiles({
+    name: "settings.json",
+    mimeType: "application/json",
+    buffer: Buffer.from('{"theme": "dark"}'),
+  });
+  await expect(page.getByRole("alert")).toContainText(
+    "settings.json could not be opened: The file is not the conversations.json of a Claude.ai data export.",
   );
 });

@@ -60,3 +60,9 @@ export {
   sessionBranch,
   sessionForest,
 } from "./claude-code.js";
+export type {
+  ClaudeAiConversation,
+  ClaudeAiExport,
+  ClaudeAiExportError,
+} from "./claude-ai.js";
+export { readClaudeAiExport } from "./claude-ai.js";

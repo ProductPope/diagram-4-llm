@@ -19,6 +19,7 @@ supersedes the old one.
 | [0010](0010-local-mcp-server.md)         | A read-only local MCP server over exported files                          | Proposed |
 | [0011](0011-session-map-pane.md)         | A Claude Code pane that draws the session map from the MCP server         | Proposed |
 | [0012](0012-session-topics.md)           | Topics on a session branch are detected on request and not stored         | Proposed |
+| [0013](0013-claude-ai-export-map.md)     | A Claude.ai data export is mapped read-only on the session page           | Proposed |
 
 Records move from Proposed to Accepted when phase 0 implementation confirms
 them.

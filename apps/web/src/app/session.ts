@@ -1,4 +1,5 @@
 import type {
+  ClaudeAiExportError,
   SessionProblem,
   SessionReadError,
   SessionStep,
@@ -41,11 +42,8 @@ export function stepRole(step: SessionStep): string {
 export function describeNotShown(
   notShown: ReadonlyMap<string, number>,
 ): string | null {
-  if (notShown.size === 0) return null;
-  const parts = [...notShown]
-    .sort(([, a], [, b]) => b - a)
-    .map(([type, count]) => `${type} ${count.toLocaleString("en")}`);
-  return `Lines not on the map, by type: ${parts.join(", ")}.`;
+  const counts = largestFirst(notShown);
+  return counts === null ? null : `Lines not on the map, by type: ${counts}.`;
 }
 
 /** How many lines could not be read, and why the first could not. */
@@ -72,6 +70,46 @@ export function describeSessionError(error: SessionReadError): string {
         : `The file is not a Claude Code session transcript: line ${first.line}: ${first.message}`;
     }
   }
+}
+
+/** What a Claude.ai conversation's map leaves out, largest first. */
+export function describeHiddenContent(
+  notShown: ReadonlyMap<string, number>,
+): string | null {
+  const counts = largestFirst(notShown);
+  return counts === null ? null : `Content not on the map, by kind: ${counts}.`;
+}
+
+/** How many parts of an export could not be read, and the first. */
+export function describeExportProblems(
+  problems: readonly string[],
+): string | null {
+  const first = problems[0];
+  if (first === undefined) return null;
+  const count =
+    problems.length === 1
+      ? "1 part of the export could not be read and is"
+      : `${problems.length.toLocaleString("en")} parts of the export could not be read and are`;
+  return `${count} not shown. The first: ${first}`;
+}
+
+export function describeExportError(error: ClaudeAiExportError): string {
+  switch (error.code) {
+    case "not-an-export":
+      return "The file is not the conversations.json of a Claude.ai data export.";
+    case "empty":
+      return "The export has no conversations.";
+    case "no-conversations":
+      return `No conversation in the export could be read. The first problem: ${error.problems[0] ?? "unknown"}`;
+  }
+}
+
+function largestFirst(counts: ReadonlyMap<string, number>): string | null {
+  if (counts.size === 0) return null;
+  return [...counts]
+    .sort(([, a], [, b]) => b - a)
+    .map(([kind, count]) => `${kind} ${count.toLocaleString("en")}`)
+    .join(", ");
 }
 
 function shorten(text: string): string {

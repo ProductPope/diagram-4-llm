@@ -967,7 +967,7 @@ export function App({ openStore, settingsStorage }: AppProps) {
         }}
       >
         <FileText aria-hidden="true" />
-        Map a Claude Code session
+        Map a session or Claude.ai export
       </Button>
       <p className="px-1 text-xs text-muted-foreground" role="status">
         {saveStateText(saveState)}

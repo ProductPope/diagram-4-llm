@@ -34,9 +34,11 @@ test("every page fits 320 pixels wide", async ({ page }) => {
   await expectNoHorizontalScroll(page);
 
   await page.goto("/#/session");
-  const picker = page.getByLabel("Open a session transcript");
+  const picker = page.getByLabel("Open a transcript or export");
   await expect(
-    page.getByRole("heading", { name: "Map of a Claude Code session" }),
+    page.getByRole("heading", {
+      name: "Map of a Claude Code session or Claude.ai conversation",
+    }),
   ).toBeVisible();
   await expectNoHorizontalScroll(page);
   await picker.setInputFiles({
@@ -52,6 +54,31 @@ test("every page fits 320 pixels wide", async ({ page }) => {
     ),
   });
   await expect(page.getByRole("region", { name: "Session map" })).toBeVisible();
+  await expectNoHorizontalScroll(page);
+
+  // An export adds a conversation list, whose titles can be long.
+  await page.getByLabel("Open another file").setInputFiles({
+    name: "conversations.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify([
+        {
+          uuid: "c1",
+          name: "A conversation title long enough to be wider than the screen",
+          updated_at: "2026-10-08T00:00:00Z",
+          chat_messages: [
+            {
+              uuid: "h1",
+              parent_message_uuid: null,
+              sender: "human",
+              content: [{ type: "text", text: "A prompt" }],
+            },
+          ],
+        },
+      ]),
+    ),
+  });
+  await expect(page.getByLabel("Conversation")).toBeVisible();
   await expectNoHorizontalScroll(page);
 });
 
