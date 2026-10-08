@@ -17,9 +17,17 @@ import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { Brand } from "./Brand";
 
 const REPOSITORY = "https://github.com/ProductPope/diagram-4-llm";
+const QUESTION_FIELD = "landing-question";
+const MODIFIER_KEYS = new Set(["Alt", "Control", "Meta", "Shift"]);
 
 /** How long the "assistant" appears to type before an answer shows. */
 const TYPING_MS = 700;
+/** How long the page stays empty before the conversation field appears. */
+const OPENING_DELAY_MS = 800;
+/** The pause between two characters of the first question being typed. */
+const KEYSTROKE_MS = 45;
+/** The pause between the first question being typed and it being sent. */
+const SEND_PAUSE_MS = 300;
 
 interface Props {
   readonly demoReady: boolean;
@@ -34,33 +42,78 @@ interface Topic {
 }
 
 /**
- * The welcome page, written as a conversation with the app. It opens with
- * one exchange; the visitor asks the next question by pressing Enter or
- * Send, or picks another one, and each answer is "typed" before it shows.
+ * The welcome page, written as a conversation with the app. It opens empty,
+ * and after a short pause shows only an empty field. Any key, or a click
+ * or tap on the field, types the first question into it and sends it.
+ * After that the visitor asks the next question by pressing Enter or Send,
+ * or picks another one, and each answer is "typed" before it shows.
  * "Show everything" reveals the whole page at once. Everything it claims is
  * something the app does today; planned work is labelled as planned.
  */
 export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
   const topics = landingTopics({ demoReady, onOpenDemo, onSetup, onOpenApp });
-  const [asked, setAsked] = useState<readonly number[]>([0]);
-  const [typing, setTyping] = useState<number | null>(() =>
-    animationsAllowed() ? 0 : null,
+  const [asked, setAsked] = useState<readonly number[]>([]);
+  const [typing, setTyping] = useState<number | null>(null);
+  const [composerShown, setComposerShown] = useState(
+    () => !animationsAllowed(),
   );
+  // The first question as typed so far, while it is being typed.
+  const [draft, setDraft] = useState<string | null>(null);
+  const opening = asked.length === 0;
   const latest = useRef<HTMLElement>(null);
   const remaining = topics
     .map((_, index) => index)
     .filter((index) => !asked.includes(index));
   const next = remaining[0];
 
-  const ask = (index: number) => {
-    if (typing !== null || asked.includes(index)) return;
+  const send = (index: number) => {
     setAsked([...asked, index]);
     setTyping(animationsAllowed() ? index : null);
+  };
+  const ask = (index: number) => {
+    if (typing !== null || draft !== null || asked.includes(index)) return;
+    send(index);
+  };
+  const begin = () => {
+    if (!opening || draft !== null) return;
+    setComposerShown(true);
+    if (animationsAllowed()) setDraft("");
+    else send(0);
   };
   const showEverything = () => {
     setAsked([...asked, ...remaining]);
     setTyping(null);
   };
+
+  useEffect(() => {
+    if (composerShown) return;
+    const timer = setTimeout(() => {
+      setComposerShown(true);
+    }, OPENING_DELAY_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [composerShown]);
+
+  const firstQuestion = topics[0]?.question ?? "";
+  useEffect(() => {
+    if (draft === null) return;
+    const typed = draft.length === firstQuestion.length;
+    const timer = setTimeout(
+      () => {
+        if (typed) {
+          setDraft(null);
+          send(0);
+        } else {
+          setDraft(firstQuestion.slice(0, draft.length + 1));
+        }
+      },
+      typed ? SEND_PAUSE_MS : KEYSTROKE_MS,
+    );
+    return () => {
+      clearTimeout(timer);
+    };
+  });
 
   useEffect(() => {
     if (typing === null) return;
@@ -78,16 +131,28 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
       latest.current?.scrollIntoView({ block: "start", behavior: "smooth" });
   }, [asked.length]);
 
-  // Enter anywhere outside a control asks the suggested question.
+  // Before the conversation starts, any key outside a control starts it,
+  // except browser shortcuts. Its default is kept, so Tab still moves focus.
+  // After that, Enter anywhere outside a control asks the suggested question.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.key !== "Enter" ||
-        event.defaultPrevented ||
-        next === undefined ||
-        (event.target instanceof HTMLElement &&
-          event.target.closest("button, a, input, textarea, select") !== null)
-      )
+      if (event.defaultPrevented) return;
+      const control =
+        event.target instanceof HTMLElement
+          ? event.target.closest("button, a, input, textarea, select")
+          : null;
+      if (opening) {
+        if (
+          (control === null || control.id === QUESTION_FIELD) &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey &&
+          !MODIFIER_KEYS.has(event.key)
+        )
+          begin();
+        return;
+      }
+      if (event.key !== "Enter" || control !== null || next === undefined)
         return;
       event.preventDefault();
       ask(next);
@@ -116,7 +181,12 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
         </nav>
       </header>
 
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-4 pt-10 pb-16">
+      <main
+        className={cn(
+          "mx-auto flex w-full max-w-3xl flex-col gap-12 px-4 pt-10",
+          opening ? "pb-6" : "flex-1 pb-16",
+        )}
+      >
         <h1 className="sr-only">
           diagram-4-llm: branching conversations with AI models
         </h1>
@@ -136,13 +206,21 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
         })}
       </main>
 
-      {next !== undefined && (
+      {next !== undefined && composerShown && (
         <section
-          className="sticky bottom-0 bg-linear-to-t from-background from-70% to-transparent pt-6"
+          className={cn(
+            opening
+              ? "flex flex-1 flex-col justify-center pb-[20dvh] transition-opacity duration-700 starting:opacity-0 motion-reduce:transition-none"
+              : "sticky bottom-0 bg-linear-to-t from-background from-70% to-transparent pt-6",
+          )}
           aria-label="Ask a question"
         >
           <div className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-4 pb-4">
-            <div className="flex flex-wrap items-center gap-2">
+            <div
+              className={cn("flex flex-wrap items-center gap-2", {
+                hidden: opening,
+              })}
+            >
               {remaining.slice(1).map((index) => (
                 <Button
                   key={index}
@@ -170,19 +248,26 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
               className="flex items-center gap-2 rounded-xl border bg-card p-2 pl-4 shadow-sm focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
               onSubmit={(event) => {
                 event.preventDefault();
-                ask(next);
+                if (opening) begin();
+                else ask(next);
               }}
             >
-              <label htmlFor="landing-question" className="sr-only">
+              <label htmlFor={QUESTION_FIELD} className="sr-only">
                 Next question
               </label>
               <input
-                id="landing-question"
+                id={QUESTION_FIELD}
                 readOnly
-                className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-                value={topics[next]?.question ?? ""}
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                placeholder="Type or tap here to start"
+                value={draft ?? (opening ? "" : (topics[next]?.question ?? ""))}
+                onClick={begin}
               />
-              <Button type="submit" size="sm" disabled={typing !== null}>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={typing !== null || draft !== null}
+              >
                 <ArrowUp aria-hidden="true" />
                 Send
               </Button>

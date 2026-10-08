@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, expect, it } from "vitest";
 
@@ -36,12 +36,20 @@ it("welcomes a new visitor before showing the app", async () => {
     />,
   );
 
+  // The welcome page opens with an empty field, after a pause.
   expect(
-    await screen.findByRole("heading", { name: "What is this?" }),
-  ).toBeDefined();
-  // The first answer is "typed" before its buttons appear.
+    await screen.findByLabelText("Next question", undefined, {
+      timeout: 2000,
+    }),
+  ).toHaveProperty("value", "");
+  fireEvent.keyDown(window, { key: "a" });
+  // The question is typed, then the answer, before its buttons appear.
   expect(
-    await screen.findByRole("button", { name: "Connect a model" }),
+    await screen.findByRole(
+      "button",
+      { name: "Connect a model" },
+      { timeout: 4000 },
+    ),
   ).toBeDefined();
 });
 

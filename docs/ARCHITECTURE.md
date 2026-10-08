@@ -310,10 +310,13 @@ Browser-specific constraints:
   visit without a fragment shows the welcome page; once the app has been
   used, or a provider is configured, the bare address opens the app.
 - **Welcome page** (`apps/web/src/ui/Landing.tsx`): written as a
-  conversation with the app. It opens with one exchange; the visitor asks
-  the next question with Enter or Send, or picks another, and each answer
-  is "typed" first (without the pause when the user prefers reduced
-  motion). "Show everything" reveals the whole page. It describes only
+  conversation with the app. It opens empty and, after a short pause,
+  shows only an empty field. Any key (except browser shortcuts), or a
+  click or tap on the field, types the first question into it and sends
+  it. Then the visitor asks the next question with Enter or Send, or picks
+  another, and each answer is "typed" first. When the user prefers reduced
+  motion there is no pause and no typing: the field shows at once and
+  questions and answers appear whole. "Show everything" reveals the whole page. It describes only
   what the app does today, labels planned work as planned, and states
   where data goes. It leads to the demo, to setup or to the app.
 - **Setup** (`apps/web/src/ui/SetupPage.tsx`, `SetupWizard.tsx`): a page

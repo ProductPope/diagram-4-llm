@@ -15,6 +15,9 @@ async function expectNoHorizontalScroll(page: Page) {
 
 test("every page fits 320 pixels wide", async ({ page }) => {
   await page.goto("/");
+  await expect(page.getByLabel("Next question")).toBeVisible();
+  await expectNoHorizontalScroll(page);
+  await page.getByLabel("Next question").click();
   await expect(
     page.getByRole("heading", { name: "What is this?" }),
   ).toBeVisible();
