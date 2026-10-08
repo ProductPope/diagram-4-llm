@@ -184,7 +184,9 @@ through keyboard and mouse in under 10 seconds by a user who knows the app.
       (reuses the branch's summary or writes one), and "New first
       message", which sees only what is attached to it; attachments stay
       while the user moves between branches
-- [ ] Token budget warnings
+- [x] Token budget warnings: a context window per model in the settings;
+      a warning from 80% of it, and above it sending is blocked with
+      suggestions (continue from a summary, remove a large attachment)
 - [ ] Suggested branches
 
 ### Phase 3: Reach
