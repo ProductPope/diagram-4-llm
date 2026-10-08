@@ -7,3 +7,5 @@ packages/core/schema/
 **/.claude-plugin/types/
 test-results/
 playwright-report/
+# Written by Tauri when it builds the desktop app
+apps/desktop/src-tauri/gen/
