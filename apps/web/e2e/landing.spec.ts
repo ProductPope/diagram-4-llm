@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("welcomes a new visitor with a conversation that builds up as they scroll", async ({
+test("welcomes a new visitor with a conversation they move forward", async ({
   page,
 }) => {
   const consoleErrors: string[] = [];
@@ -9,19 +9,47 @@ test("welcomes a new visitor with a conversation that builds up as they scroll",
   });
   await page.goto("/");
 
-  const first = page.getByRole("region", { name: "What is this?" });
+  const exchange = (question: string) =>
+    page.getByRole("region", { name: question });
+  const first = exchange("What is this?");
   await expect(
     first.getByText("a conversation is a map, not a scroll"),
   ).toBeVisible();
+  // Nothing else is asked until the visitor asks.
+  await expect(
+    exchange("Why not just keep chatting in one thread?"),
+  ).toHaveCount(0);
 
-  // A later answer appears only when its exchange scrolls into view.
-  const privacy = page.getByRole("region", { name: "Where does my data go?" });
-  await expect(privacy).toHaveAttribute("data-phase", "waiting");
-  await privacy.scrollIntoViewIfNeeded();
-  await expect(privacy).toHaveAttribute("data-phase", "answered");
+  // Enter sends the suggested question; the answer is typed, then shown.
+  await expect(page.getByLabel("Next question")).toHaveValue(
+    "Why not just keep chatting in one thread?",
+  );
+  await page.keyboard.press("Enter");
+  const second = exchange("Why not just keep chatting in one thread?");
+  await expect(second).toHaveAttribute("data-phase", "typing");
+  await expect(second).toHaveAttribute("data-phase", "answered");
+  await expect(second.getByText("Long conversations drift.")).toBeVisible();
+
+  // Send asks the next suggestion; another question can be picked instead.
+  await page.getByRole("button", { name: "Where does my data go?" }).click();
+  const privacy = exchange("Where does my data go?");
   await expect(
     privacy.getByText("Only to the model provider you choose"),
   ).toBeVisible();
+  await expect(page.getByLabel("Next question")).toHaveValue(
+    "What can I do with it today?",
+  );
+  await page.getByRole("button", { name: "Send" }).click();
+  await expect(
+    exchange("What can I do with it today?").getByText(
+      "Branch from any message",
+    ),
+  ).toBeVisible();
+
+  // Show everything reveals the rest, and the composer goes away.
+  await page.getByRole("button", { name: "Show everything" }).click();
+  await expect(exchange("How do I start?")).toBeVisible();
+  await expect(page.getByLabel("Next question")).toHaveCount(0);
 
   // The demo opens in the app, without any setup.
   await first.getByRole("button", { name: "Explore the demo" }).click();
@@ -60,12 +88,18 @@ test("setup can be skipped from any step", async ({ page }) => {
   await expect(page).toHaveURL(/#\/setup$/);
 });
 
-test("shows every answer at once when the visitor prefers reduced motion", async ({
+test("answers without a typing pause when the visitor prefers reduced motion", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await expect(
-    page.getByRole("region", { name: "How do I start?" }),
-  ).toHaveAttribute("data-phase", "answered");
+  const first = page.getByRole("region", { name: "What is this?" });
+  await expect(first).toBeVisible();
+  expect(await first.getAttribute("data-phase")).toBe("answered");
+  await page.getByRole("button", { name: "Send" }).click();
+  const second = page.getByRole("region", {
+    name: "Why not just keep chatting in one thread?",
+  });
+  await expect(second).toBeVisible();
+  expect(await second.getAttribute("data-phase")).toBe("answered");
 });
