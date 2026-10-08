@@ -42,6 +42,7 @@ export {
 export type { ConversationDocument, ImportError } from "./format.js";
 export {
   conversationDocumentSchema,
+  describeImportError,
   exportConversation,
   FORMAT_ID,
   FORMAT_VERSION,

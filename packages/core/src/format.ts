@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { GraphError } from "./errors.js";
+import { describeGraphError, type GraphError } from "./errors.js";
 import type { ConversationGraph } from "./graph.js";
 import type { Conversation, GraphNode, NodeId, NodeMeta } from "./model.js";
 import { createConversation, setNodeMeta } from "./operations.js";
@@ -102,4 +102,18 @@ export function importConversation(
     graph = updated.value;
   }
   return ok(graph);
+}
+
+/** The reason a document was not imported, for people. */
+export function describeImportError(error: ImportError): string {
+  switch (error.code) {
+    case "invalid-document":
+      return error.issues;
+    case "invalid-conversation":
+      return describeGraphError(error.error);
+    case "invalid-node":
+      return `Node ${String(error.index)} (${error.nodeId}): ${describeGraphError(error.error)}`;
+    case "invalid-meta":
+      return `Metadata of ${error.nodeId}: ${describeGraphError(error.error)}`;
+  }
 }

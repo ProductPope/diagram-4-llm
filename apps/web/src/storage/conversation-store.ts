@@ -1,11 +1,11 @@
 import {
   describeGraphError,
+  describeImportError,
   exportConversation,
   finishAssistantTurn,
   importConversation,
   type ConversationDocument,
   type ConversationGraph,
-  type ImportError,
   type ISODate,
 } from "@diagram-4-llm/core";
 
@@ -152,19 +152,6 @@ function abortInterruptedTurns(graph: ConversationGraph): ConversationGraph {
     result = finished.value;
   }
   return result;
-}
-
-export function describeImportError(error: ImportError): string {
-  switch (error.code) {
-    case "invalid-document":
-      return error.issues;
-    case "invalid-conversation":
-      return describeGraphError(error.error);
-    case "invalid-node":
-      return `Node ${String(error.index)} (${error.nodeId}): ${describeGraphError(error.error)}`;
-    case "invalid-meta":
-      return `Metadata of ${error.nodeId}: ${describeGraphError(error.error)}`;
-  }
 }
 
 function openDatabase(
