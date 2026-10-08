@@ -291,3 +291,183 @@
     @apply border px-2 py-1;
   }
 }
+
+/* Illustrations on the features page. Their parts are coloured from the
+   design tokens, so they follow the colour scheme. */
+@layer components {
+  .feature-art {
+    @apply mx-auto h-auto w-full max-w-sm;
+  }
+
+  .feature-art text {
+    font-size: 9px;
+    fill: var(--muted-foreground);
+  }
+
+  .feature-node {
+    fill: var(--card);
+    stroke: var(--chart-2);
+    stroke-width: 1;
+  }
+
+  .feature-node-user {
+    fill: var(--muted);
+  }
+
+  .feature-node-summary {
+    stroke: var(--foreground);
+  }
+
+  .feature-node-suggested {
+    fill: none;
+    stroke-dasharray: 3 3;
+  }
+
+  .feature-node-attached {
+    fill: none;
+    stroke: var(--foreground);
+    stroke-dasharray: 3 2;
+    stroke-width: 1.5;
+  }
+
+  .feature-node-branch {
+    fill: none;
+    stroke: var(--branch);
+    stroke-width: 2;
+  }
+
+  .feature-edge {
+    fill: none;
+    stroke: var(--chart-2);
+    stroke-width: 1.25;
+  }
+
+  .feature-edge-reference {
+    stroke: var(--foreground);
+    stroke-dasharray: 4 3;
+  }
+
+  .feature-edge-branch {
+    stroke: var(--branch);
+    stroke-width: 2;
+  }
+
+  .feature-text-line {
+    fill: var(--chart-2);
+  }
+
+  .feature-text-line-edited {
+    fill: var(--branch);
+  }
+
+  .feature-tool {
+    fill: var(--muted);
+    stroke: var(--chart-2);
+  }
+
+  .feature-meter {
+    fill: none;
+    stroke: var(--foreground);
+  }
+
+  .feature-meter-part {
+    fill: var(--chart-2);
+  }
+
+  .feature-meter-warning {
+    fill: var(--foreground);
+  }
+
+  .feature-meter-over {
+    fill: var(--destructive);
+  }
+}
+
+/* Each illustration builds up in steps and starts again. Without the
+   animation, as with reduced motion or when paused, every step is shown. */
+@media (prefers-reduced-motion: no-preference) {
+  .feature-step {
+    animation-duration: 9s;
+    animation-iteration-count: infinite;
+  }
+
+  .feature-step-1 {
+    animation-name: feature-step-1;
+  }
+
+  .feature-step-2 {
+    animation-name: feature-step-2;
+  }
+
+  .feature-step-3 {
+    animation-name: feature-step-3;
+  }
+
+  .feature-step-4 {
+    animation-name: feature-step-4;
+  }
+
+  .features-paused .feature-step {
+    animation: none;
+  }
+}
+
+@keyframes feature-step-1 {
+  0%,
+  12% {
+    opacity: 0;
+  }
+  18%,
+  90% {
+    opacity: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes feature-step-2 {
+  0%,
+  30% {
+    opacity: 0;
+  }
+  36%,
+  90% {
+    opacity: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes feature-step-3 {
+  0%,
+  48% {
+    opacity: 0;
+  }
+  54%,
+  90% {
+    opacity: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes feature-step-4 {
+  0%,
+  66% {
+    opacity: 0;
+  }
+  72%,
+  90% {
+    opacity: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+  }
+}

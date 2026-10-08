@@ -25,6 +25,7 @@ import {
 } from "#components/ui/resizable";
 import { cn } from "#lib/utils";
 import {
+  BookOpen,
   CircleAlert,
   Download,
   FileText,
@@ -92,6 +93,7 @@ import { SettingsForm } from "./SettingsForm";
 import { Brand } from "./Brand";
 import { BranchStrip } from "./BranchStrip";
 import { Landing } from "./Landing";
+import { FeaturesPage } from "./FeaturesPage";
 import { SessionPage, type TopicModel } from "./SessionPage";
 import { SetupPage } from "./SetupPage";
 
@@ -891,6 +893,15 @@ export function App({ openStore, settingsStorage }: AppProps) {
       />
     );
   }
+  if (page === "features") {
+    return (
+      <FeaturesPage
+        onBack={() => {
+          navigate("app");
+        }}
+      />
+    );
+  }
   if (page === "setup") {
     return (
       <SetupPage
@@ -1292,6 +1303,18 @@ export function App({ openStore, settingsStorage }: AppProps) {
                 : "OpenAI-compatible"}
             </Badge>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              navigate("features");
+            }}
+          >
+            <BookOpen aria-hidden="true" />
+            {/* The header has room for one label on a 320-pixel screen,
+                and Settings is needed more often. */}
+            <span className="sr-only sm:not-sr-only">Features</span>
+          </Button>
           <Button
             variant="outline"
             size="sm"

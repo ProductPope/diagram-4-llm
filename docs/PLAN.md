@@ -154,6 +154,9 @@ consecutive weeks and records the friction points in issues.
       app (WCAG 2.4.1 bypass blocks)
 - [x] Performance checked with a 1,000-turn conversation (render and branch
       switch budgets in an end-to-end test; panning frame rate not measured)
+- [x] A features page, next to Settings, that explains each feature with
+      an illustration built up step by step (still with reduced motion,
+      and the animations can be paused)
 
 ### Phase 2: Context control
 
