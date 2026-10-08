@@ -39,7 +39,10 @@ it("welcomes a new visitor before showing the app", async () => {
   expect(
     await screen.findByRole("heading", { name: "What is this?" }),
   ).toBeDefined();
-  expect(screen.getByRole("button", { name: "Connect a model" })).toBeDefined();
+  // The first answer is "typed" before its buttons appear.
+  expect(
+    await screen.findByRole("button", { name: "Connect a model" }),
+  ).toBeDefined();
 });
 
 it("starts the app with no conversations and asks for a provider before sending", async () => {

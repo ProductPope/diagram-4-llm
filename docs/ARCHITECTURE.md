@@ -310,10 +310,12 @@ Browser-specific constraints:
   visit without a fragment shows the welcome page; once the app has been
   used, or a provider is configured, the bare address opens the app.
 - **Welcome page** (`apps/web/src/ui/Landing.tsx`): written as a
-  conversation with the app, whose exchanges appear as they scroll into
-  view (all at once when the user prefers reduced motion). It describes
-  only what the app does today, labels planned work as planned, and
-  states where data goes. It leads to the demo, to setup or to the app.
+  conversation with the app. It opens with one exchange; the visitor asks
+  the next question with Enter or Send, or picks another, and each answer
+  is "typed" first (without the pause when the user prefers reduced
+  motion). "Show everything" reveals the whole page. It describes only
+  what the app does today, labels planned work as planned, and states
+  where data goes. It leads to the demo, to setup or to the app.
 - **Setup** (`apps/web/src/ui/SetupPage.tsx`, `SetupWizard.tsx`): a page
   of its own, with the demo and "Skip for now" on every step. Choose a
   provider, enter a key or a server address, test the connection, and

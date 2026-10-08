@@ -2,6 +2,7 @@ import { Button } from "#components/ui/button";
 import { cn } from "#lib/utils";
 import {
   ArrowRight,
+  ArrowUp,
   Code,
   Eye,
   FileJson,
@@ -11,7 +12,7 @@ import {
   Network,
   Sparkles,
 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 
 import { Brand } from "./Brand";
 
@@ -27,24 +28,75 @@ interface Props {
   readonly onOpenApp: () => void;
 }
 
+interface Topic {
+  readonly question: string;
+  readonly answer: ReactNode;
+}
+
 /**
- * The welcome page, written as a conversation with the app: each section
- * is a question and an answer, and each exchange appears as it scrolls into
- * view, the way a chat builds up. Everything it claims is something the app
- * does today; planned work is labelled as planned.
+ * The welcome page, written as a conversation with the app. It opens with
+ * one exchange; the visitor asks the next question by pressing Enter or
+ * Send, or picks another one, and each answer is "typed" before it shows.
+ * "Show everything" reveals the whole page at once. Everything it claims is
+ * something the app does today; planned work is labelled as planned.
  */
 export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
-  const actions = (
-    <div className="flex flex-wrap gap-2">
-      <Button onClick={onOpenDemo} disabled={!demoReady}>
-        <Sparkles aria-hidden="true" />
-        Explore the demo
-      </Button>
-      <Button variant="outline" onClick={onSetup}>
-        Connect a model
-      </Button>
-    </div>
+  const topics = landingTopics({ demoReady, onOpenDemo, onSetup, onOpenApp });
+  const [asked, setAsked] = useState<readonly number[]>([0]);
+  const [typing, setTyping] = useState<number | null>(() =>
+    animationsAllowed() ? 0 : null,
   );
+  const latest = useRef<HTMLElement>(null);
+  const remaining = topics
+    .map((_, index) => index)
+    .filter((index) => !asked.includes(index));
+  const next = remaining[0];
+
+  const ask = (index: number) => {
+    if (typing !== null || asked.includes(index)) return;
+    setAsked([...asked, index]);
+    setTyping(animationsAllowed() ? index : null);
+  };
+  const showEverything = () => {
+    setAsked([...asked, ...remaining]);
+    setTyping(null);
+  };
+
+  useEffect(() => {
+    if (typing === null) return;
+    const timer = setTimeout(() => {
+      setTyping(null);
+    }, TYPING_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [typing]);
+
+  // A newly asked question scrolls into view, as a sent message does.
+  useEffect(() => {
+    if (asked.length > 1)
+      latest.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [asked.length]);
+
+  // Enter anywhere outside a control asks the suggested question.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key !== "Enter" ||
+        event.defaultPrevented ||
+        next === undefined ||
+        (event.target instanceof HTMLElement &&
+          event.target.closest("button, a, input, textarea, select") !== null)
+      )
+        return;
+      event.preventDefault();
+      ask(next);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  });
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -64,12 +116,100 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
         </nav>
       </header>
 
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-4 pt-10 pb-40">
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-4 pt-10 pb-16">
         <h1 className="sr-only">
           diagram-4-llm: branching conversations with AI models
         </h1>
+        {asked.map((index, position) => {
+          const topic = topics[index];
+          if (topic === undefined) return null;
+          return (
+            <Exchange
+              key={index}
+              ref={position === asked.length - 1 ? latest : undefined}
+              question={topic.question}
+              typing={typing === index}
+            >
+              {topic.answer}
+            </Exchange>
+          );
+        })}
+      </main>
 
-        <Exchange question="What is this?" immediate>
+      {next !== undefined && (
+        <div className="sticky bottom-0 bg-linear-to-t from-background from-70% to-transparent pt-6">
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-4 pb-4">
+            <div className="flex flex-wrap items-center gap-2">
+              {remaining.slice(1).map((index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full"
+                  disabled={typing !== null}
+                  onClick={() => {
+                    ask(index);
+                  }}
+                >
+                  {topics[index]?.question}
+                </Button>
+              ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full"
+                onClick={showEverything}
+              >
+                Show everything
+              </Button>
+            </div>
+            <form
+              className="flex items-center gap-2 rounded-xl border bg-card p-2 pl-4 shadow-sm focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
+              onSubmit={(event) => {
+                event.preventDefault();
+                ask(next);
+              }}
+            >
+              <label htmlFor="landing-question" className="sr-only">
+                Next question
+              </label>
+              <input
+                id="landing-question"
+                readOnly
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                value={topics[next]?.question ?? ""}
+              />
+              <Button type="submit" size="sm" disabled={typing !== null}>
+                <ArrowUp aria-hidden="true" />
+                Send
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <footer className="border-t px-4 py-6 text-center text-xs text-muted-foreground">
+        Open source under the MIT licence ·{" "}
+        <a className="underline underline-offset-4" href={REPOSITORY}>
+          GitHub
+        </a>
+      </footer>
+    </div>
+  );
+}
+
+/** The conversation, in the order it is suggested. The first opens the page. */
+function landingTopics({
+  demoReady,
+  onOpenDemo,
+  onSetup,
+  onOpenApp,
+}: Props): readonly Topic[] {
+  return [
+    {
+      question: "What is this?",
+      answer: (
+        <>
           <p className="font-heading text-2xl leading-snug font-semibold tracking-tight text-balance sm:text-3xl">
             A chat client for AI models in which a conversation is a map, not a
             scroll.
@@ -80,11 +220,29 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
             Anthropic&apos;s models and with models running on your own
             computer.
           </p>
-          <BranchSketch />
-          {actions}
-        </Exchange>
-
-        <Exchange question="Why not just keep chatting in one thread?">
+          <div className="flex flex-wrap gap-2">
+            <Button size="lg" onClick={onOpenDemo} disabled={!demoReady}>
+              <Sparkles aria-hidden="true" />
+              Explore the demo
+            </Button>
+            <Button size="lg" variant="outline" onClick={onSetup}>
+              Connect a model
+            </Button>
+          </div>
+          <figure className="mt-2 flex flex-col items-center gap-2 rounded-xl border bg-muted/40 p-4">
+            <BranchSketch />
+            <figcaption className="text-xs text-muted-foreground">
+              One question, one answer, two follow-ups: each branch keeps its
+              own context.
+            </figcaption>
+          </figure>
+        </>
+      ),
+    },
+    {
+      question: "Why not just keep chatting in one thread?",
+      answer: (
+        <>
           <p>Long conversations drift. Two things go wrong:</p>
           <ul className="flex list-disc flex-col gap-1.5 pl-5">
             <li>
@@ -101,9 +259,13 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
             Branches fix both. Each branch keeps its own context, and the map
             shows where everything is.
           </p>
-        </Exchange>
-
-        <Exchange question="What can I do with it today?">
+        </>
+      ),
+    },
+    {
+      question: "What can I do with it today?",
+      answer: (
+        <>
           <ul className="grid gap-3 sm:grid-cols-2">
             <Feature icon={<GitFork />} title="Branch from any message">
               Right-click a message on the map and choose{" "}
@@ -135,9 +297,13 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
             Planned next: bringing a single message from one branch into
             another, and summaries of whole branches.
           </p>
-        </Exchange>
-
-        <Exchange question="Where does my data go?">
+        </>
+      ),
+    },
+    {
+      question: "Where does my data go?",
+      answer: (
+        <>
           <p className="font-medium">
             Only to the model provider you choose, and with a local model, not
             even there.
@@ -166,9 +332,13 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
             running on the page. The policy above is what keeps other scripts
             out, and the code is open, so you can check it.
           </p>
-        </Exchange>
-
-        <Exchange question="Who built it, and how?">
+        </>
+      ),
+    },
+    {
+      question: "Who built it, and how?",
+      answer: (
+        <>
           <p>
             It is built with substantial help from AI coding tools, under the
             direction of a human maintainer, and it is meant to be judged on
@@ -199,9 +369,13 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
             </a>{" "}
             (MIT licence).
           </p>
-        </Exchange>
-
-        <Exchange question="How do I start?">
+        </>
+      ),
+    },
+    {
+      question: "How do I start?",
+      answer: (
+        <>
           <div className="grid gap-3 sm:grid-cols-2">
             <StartCard
               title="Explore the demo"
@@ -234,85 +408,32 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
             </button>
             .
           </p>
-        </Exchange>
-      </main>
-
-      <footer className="border-t px-4 py-6 text-center text-xs text-muted-foreground">
-        Open source under the MIT licence ·{" "}
-        <a className="underline underline-offset-4" href={REPOSITORY}>
-          GitHub
-        </a>
-      </footer>
-    </div>
-  );
+        </>
+      ),
+    },
+  ];
 }
 
-type Phase = "waiting" | "typing" | "answered";
-
-/**
- * One question and its answer. The question appears when the exchange
- * scrolls into view, then a typing indicator, then the answer. Without
- * IntersectionObserver, or when the user prefers reduced motion, the
- * answer is shown at once.
- */
+/** One question and its answer, with a typing indicator while it "writes". */
 function Exchange({
+  ref,
   question,
-  immediate = false,
+  typing,
   children,
 }: {
+  readonly ref?: Ref<HTMLElement> | undefined;
   readonly question: string;
-  readonly immediate?: boolean;
+  readonly typing: boolean;
   readonly children: ReactNode;
 }) {
-  const root = useRef<HTMLElement>(null);
-  const [phase, setPhase] = useState<Phase>(() => {
-    if (!animationsAllowed()) return "answered";
-    return immediate ? "typing" : "waiting";
-  });
-
-  // Waiting to be seen: starts typing once the exchange scrolls into view.
-  useEffect(() => {
-    const element = root.current;
-    if (phase !== "waiting" || element === null) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          observer.disconnect();
-          setPhase("typing");
-        }
-      },
-      { threshold: 0.25 },
-    );
-    observer.observe(element);
-    return () => {
-      observer.disconnect();
-    };
-  }, [phase]);
-
-  // Typing: the answer follows after a short pause.
-  useEffect(() => {
-    if (phase !== "typing") return;
-    const timer = setTimeout(() => {
-      setPhase("answered");
-    }, TYPING_MS);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [phase]);
-
   return (
     <section
-      ref={root}
-      className="flex flex-col gap-4"
+      ref={ref}
+      className="flex scroll-mt-20 flex-col gap-4"
       aria-label={question}
-      data-phase={phase}
+      data-phase={typing ? "typing" : "answered"}
     >
-      <div
-        className={cn(
-          "ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-muted px-4 py-2.5 transition-all duration-500",
-          phase === "waiting" && "translate-y-2 opacity-0",
-        )}
-      >
+      <div className="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-muted px-4 py-2.5">
         <h2 className="text-sm font-normal sm:text-base">{question}</h2>
       </div>
       <div className="flex gap-3">
@@ -322,28 +443,17 @@ function Exchange({
         >
           <Network className="size-4" />
         </span>
-        {/* The answer keeps its space while hidden, so only exchanges that
-            are really in view start, and the page does not jump. */}
-        <div className="relative min-w-0 flex-1">
-          {phase === "typing" && (
-            <p
-              className="absolute top-0 left-0 flex h-7 items-center gap-1"
-              aria-label="Typing"
-            >
-              <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground" />
-              <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
-              <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
-            </p>
-          )}
-          <div
-            className={cn(
-              "flex flex-col gap-4 leading-relaxed transition-all duration-500",
-              phase !== "answered" && "translate-y-2 opacity-0",
-            )}
-          >
+        {typing ? (
+          <p className="flex h-7 items-center gap-1" aria-label="Typing">
+            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground" />
+            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
+            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
+          </p>
+        ) : (
+          <div className="flex min-w-0 flex-1 flex-col gap-4 leading-relaxed">
             {children}
           </div>
-        </div>
+        )}
       </div>
     </section>
   );
@@ -351,7 +461,7 @@ function Exchange({
 
 function animationsAllowed(): boolean {
   return (
-    typeof IntersectionObserver !== "undefined" &&
+    typeof window.matchMedia !== "function" ||
     !window.matchMedia("(prefers-reduced-motion: reduce)").matches
   );
 }
