@@ -55,7 +55,7 @@ test("opens with an empty field after a pause, and any key starts the conversati
   await stepUntil(page, 100, async () => (await phaseOfFirst()) === "typing");
   await stepUntil(page, 100, async () => (await phaseOfFirst()) === "writing");
   const answer = first.getByRole("paragraph").first();
-  await stepUntil(page, 16, async () => (await answer.count()) > 0);
+  await stepUntil(page, 32, async () => (await answer.count()) > 0);
   const sentence =
     "A chat client for AI models in which a conversation is a map, not a scroll.";
   const written = (await answer.textContent()) ?? "";
@@ -82,6 +82,34 @@ test("a click or tap on the empty field starts the conversation", async ({
       .getByRole("region", { name: "What is this?" })
       .getByText("a conversation is a map, not a scroll"),
   ).toBeVisible();
+});
+
+test("the field moves from the middle to the bottom once the first question is sent", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const field = page.getByLabel("Next question");
+  await expect(field).toBeVisible();
+  const middle = await field.boundingBox();
+  // Record the field's transitions from here on.
+  await page.evaluate(() => {
+    const form = document.getElementById("landing-question")?.closest("form");
+    const moves: string[] = [];
+    Object.assign(window, { moves });
+    form?.addEventListener("transitionstart", (event) => {
+      moves.push(event.propertyName);
+    });
+  });
+
+  await field.click();
+  await expect(
+    page.getByRole("region", { name: "What is this?" }),
+  ).toHaveAttribute("data-phase", "answered");
+  const bottom = await field.boundingBox();
+  expect(bottom?.y ?? 0).toBeGreaterThan(middle?.y ?? Infinity);
+  expect(
+    await page.evaluate(() => (window as unknown as { moves: string[] }).moves),
+  ).toContain("transform");
 });
 
 test("welcomes a new visitor with a conversation they move forward", async ({

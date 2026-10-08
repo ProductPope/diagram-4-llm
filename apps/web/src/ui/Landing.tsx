@@ -12,7 +12,14 @@ import {
   Network,
   Sparkles,
 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type Ref,
+} from "react";
 
 import { Brand } from "./Brand";
 import { textLength, writeOut } from "./typewriter";
@@ -25,12 +32,14 @@ const MODIFIER_KEYS = new Set(["Alt", "Control", "Meta", "Shift"]);
 const TYPING_MS = 700;
 /** An answer is then written out this many characters at a time... */
 const CHARACTERS_PER_STEP = 5;
-/** ...at this interval, about as fast as a model streams its answer. */
-const WRITING_STEP_MS = 16;
+/** ...at this interval, slow enough to follow as it is written. */
+const WRITING_STEP_MS = 32;
 /** How long the page stays empty before the conversation field appears. */
 const OPENING_DELAY_MS = 800;
 /** The pause between two characters of the first question being typed. */
 const KEYSTROKE_MS = 45;
+/** How long the field takes to move down once the first question is sent. */
+const FIELD_MOVE_MS = 600;
 /** The pause between the first question being typed and it being sent. */
 const SEND_PAUSE_MS = 300;
 
@@ -73,6 +82,9 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
   const [draft, setDraft] = useState<string | null>(null);
   const opening = asked.length === 0;
   const latest = useRef<HTMLElement>(null);
+  const composer = useRef<HTMLFormElement>(null);
+  // Where the field was on screen while the conversation had not started.
+  const openingTop = useRef<number | null>(null);
   const remaining = topics
     .map((_, index) => index)
     .filter((index) => !asked.includes(index));
@@ -149,6 +161,29 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
     return () => {
       clearTimeout(timer);
     };
+  });
+
+  // When the first question is sent, the field leaves the middle of the page
+  // for the bottom. It is shown moving there rather than jumping: before the
+  // browser paints the new layout, the field is shifted back to where it was
+  // and then let go, so a transition carries it down.
+  useLayoutEffect(() => {
+    const form = composer.current;
+    if (form === null) return;
+    if (opening) {
+      openingTop.current = form.getBoundingClientRect().top;
+      return;
+    }
+    const from = openingTop.current;
+    openingTop.current = null;
+    if (from === null || !animationsAllowed()) return;
+    form.style.transition = "none";
+    form.style.transform = `translateY(${String(from - form.getBoundingClientRect().top)}px)`;
+    // Reading the layout makes the browser apply the shift before the
+    // transition is set, so the shift itself is not animated.
+    form.getBoundingClientRect();
+    form.style.transition = `transform ${String(FIELD_MOVE_MS)}ms ease-in-out`;
+    form.style.transform = "";
   });
 
   // A newly asked question scrolls into view, as a sent message does.
@@ -279,6 +314,7 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
               </Button>
             </div>
             <form
+              ref={composer}
               className="flex items-center gap-2 rounded-xl border bg-card p-2 pl-4 shadow-sm focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
               onSubmit={(event) => {
                 event.preventDefault();
