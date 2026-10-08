@@ -225,3 +225,47 @@ test("starts and answers without pauses or typing when the visitor prefers reduc
   await expect(second).toBeVisible();
   expect(await second.getAttribute("data-phase")).toBe("answered");
 });
+
+test.describe("on a phone", () => {
+  test.use({ viewport: { width: 390, height: 664 }, hasTouch: true });
+
+  test("keeps the question and the answer being written in view", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByLabel("Next question").tap();
+    await expect(
+      page.getByRole("region", { name: "What is this?" }),
+    ).toHaveAttribute("data-phase", "answered");
+    await page.getByRole("button", { name: "Send" }).tap();
+
+    const exchange = page.getByRole("region", {
+      name: "Why not just keep chatting in one thread?",
+    });
+    const header = page.getByRole("banner");
+    const dock = page.getByRole("region", { name: "Ask a question" });
+    // The question scrolls up under the header, as a sent message does.
+    await expect(async () => {
+      const top = (await exchange.boundingBox())?.y ?? Infinity;
+      const headerBox = await header.boundingBox();
+      const below = (headerBox?.y ?? 0) + (headerBox?.height ?? 0);
+      expect(top).toBeGreaterThanOrEqual(below);
+      expect(top).toBeLessThan(below + 40);
+    }).toPass();
+
+    // While the answer is written out, its newest text stays above the
+    // questions and the field at the bottom of the screen.
+    await expect(exchange).toHaveAttribute("data-phase", "writing");
+    const answer = exchange
+      .getByText("Long conversations drift.")
+      .locator("..");
+    while ((await exchange.getAttribute("data-phase")) === "writing") {
+      const written = await answer.boundingBox();
+      const dockTop = (await dock.boundingBox())?.y ?? 0;
+      expect((written?.y ?? 0) + (written?.height ?? 0)).toBeLessThanOrEqual(
+        dockTop + 1,
+      );
+    }
+    await expect(exchange.getByText("the map shows where")).toBeInViewport();
+  });
+});

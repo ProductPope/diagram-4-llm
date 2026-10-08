@@ -82,7 +82,14 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
   const [draft, setDraft] = useState<string | null>(null);
   const opening = asked.length === 0;
   const latest = useRef<HTMLElement>(null);
+  const header = useRef<HTMLElement>(null);
+  const dock = useRef<HTMLElement>(null);
   const composer = useRef<HTMLFormElement>(null);
+  // The height left for the latest exchange between the header and the dock.
+  const [room, setRoom] = useState(0);
+  // Whether the page scrolls to keep the answer being written in view. The
+  // visitor scrolling takes over from it until the next question.
+  const following = useRef(false);
   // Where the field was on screen while the conversation had not started.
   const openingTop = useRef<number | null>(null);
   const remaining = topics
@@ -186,11 +193,64 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
     form.style.transform = "";
   });
 
-  // A newly asked question scrolls into view, as a sent message does.
+  useLayoutEffect(() => {
+    const measure = () => {
+      setRoom(
+        Math.max(
+          0,
+          window.innerHeight -
+            (header.current?.offsetHeight ?? 0) -
+            (dock.current?.offsetHeight ?? 0),
+        ),
+      );
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+    };
+  }, [opening, asked.length]);
+
+  // A newly asked question scrolls to the top, under the header, as a sent
+  // message does. The latest exchange is at least as tall as the room
+  // between the header and the dock, so there is always space to do so.
   useEffect(() => {
-    if (asked.length > 1)
-      latest.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    following.current = true;
+    const section = latest.current;
+    if (asked.length < 2 || section === null) return;
+    window.scrollTo({
+      top:
+        window.scrollY +
+        section.getBoundingClientRect().top -
+        (header.current?.offsetHeight ?? 0) -
+        16,
+      behavior: animationsAllowed() ? "smooth" : "auto",
+    });
   }, [asked.length]);
+
+  useEffect(() => {
+    const stopFollowing = () => {
+      following.current = false;
+    };
+    window.addEventListener("wheel", stopFollowing, { passive: true });
+    window.addEventListener("touchmove", stopFollowing, { passive: true });
+    return () => {
+      window.removeEventListener("wheel", stopFollowing);
+      window.removeEventListener("touchmove", stopFollowing);
+    };
+  }, []);
+
+  // As an answer is written out, the page scrolls with it, so the newest
+  // text never runs under the dock, which takes a large part of a phone's
+  // screen.
+  useLayoutEffect(() => {
+    const answer = latest.current?.lastElementChild;
+    if (writing === null || !following.current || answer == null) return;
+    const visibleBottom =
+      window.innerHeight - (dock.current?.offsetHeight ?? 0) - 16;
+    const overflow = answer.getBoundingClientRect().bottom - visibleBottom;
+    if (overflow > 0) window.scrollBy(0, overflow);
+  });
 
   // Before the conversation starts, any key outside a control starts it,
   // except browser shortcuts. Its default is kept, so Tab still moves focus.
@@ -226,7 +286,10 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-10 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b bg-background/90 px-4 py-2 backdrop-blur">
+      <header
+        ref={header}
+        className="sticky top-0 z-10 flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b bg-background/90 px-4 py-2 backdrop-blur"
+      >
         <Brand />
         <nav className="flex items-center gap-1" aria-label="Site">
           <Button variant="ghost" asChild>
@@ -258,6 +321,7 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
             <Exchange
               key={index}
               ref={position === asked.length - 1 ? latest : undefined}
+              minHeight={position === asked.length - 1 ? room : 0}
               question={topic.question}
               phase={
                 typing === index
@@ -277,6 +341,7 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
 
       {next !== undefined && composerShown && (
         <section
+          ref={dock}
           className={cn(
             opening
               ? "flex flex-1 flex-col justify-center pb-[20dvh] transition-opacity duration-700 starting:opacity-0 motion-reduce:transition-none"
@@ -578,11 +643,13 @@ function landingTopics({
  */
 function Exchange({
   ref,
+  minHeight,
   question,
   phase,
   children,
 }: {
   readonly ref?: Ref<HTMLElement> | undefined;
+  readonly minHeight: number;
   readonly question: string;
   readonly phase: "typing" | "writing" | "answered";
   readonly children: ReactNode;
@@ -590,7 +657,8 @@ function Exchange({
   return (
     <section
       ref={ref}
-      className="flex scroll-mt-20 flex-col gap-4"
+      className="flex flex-col gap-4"
+      style={{ minHeight }}
       aria-label={question}
       data-phase={phase}
       aria-busy={phase !== "answered"}
