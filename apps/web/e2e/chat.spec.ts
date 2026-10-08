@@ -108,3 +108,25 @@ test("asks for a provider before sending", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Send" })).toBeDisabled();
 });
+
+test("asks for a provider when starting a conversation without one", async ({
+  page,
+}) => {
+  await page.goto("/#/app");
+  await page.getByRole("button", { name: "New conversation" }).click();
+  const settings = page.getByRole("form", { name: "Provider settings" });
+  await expect(settings).toBeVisible();
+
+  await page.getByLabel(/^Models/).fill("test-model");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(settings).toBeHidden();
+  await expect(page.getByText("Start a new conversation below.")).toBeVisible();
+  await expect(page.getByLabel("Message", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Configure a provider in Settings before sending."),
+  ).toBeHidden();
+
+  // With a provider, a new conversation starts at once.
+  await page.getByRole("button", { name: "New conversation" }).click();
+  await expect(settings).toBeHidden();
+});
