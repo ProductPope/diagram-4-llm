@@ -322,13 +322,14 @@ Browser-specific constraints:
   conversation with the app. It opens empty and, after a short pause,
   shows only an empty field. Any key (except browser shortcuts), or a
   click or tap on the field, types the first question into it and sends
-  it. Then the visitor asks the next question with Enter or Send, or picks
-  another. Each answer is "typed" first, then written out a few characters
-  at a time, as a model streams it (`apps/web/src/ui/typewriter.ts`). When
+  it, and the field moves down to the bottom of the page. Then the
+  visitor asks the next question with Enter or Send, or picks another.
+  Each answer is "typed" first, then written out a few characters at a
+  time, as a model streams it (`apps/web/src/ui/typewriter.ts`). When
   the user prefers reduced motion there is no pause and no typing: the
-  field shows at once and questions and answers appear whole. "Show everything" reveals the whole page. It describes only
-  what the app does today, labels planned work as planned, and states
-  where data goes. It leads to the demo, to setup or to the app.
+  field shows at once and questions and answers appear whole. "Show
+  everything" reveals the whole page. It describes only what the app does
+  today, labels planned work as planned, and states where data goes. It leads to the demo, to setup or to the app.
 - **Setup** (`apps/web/src/ui/SetupPage.tsx`, `SetupWizard.tsx`): a page
   of its own, with the demo and "Skip for now" on every step. Choose a
   provider, enter a key or a server address, test the connection, and
