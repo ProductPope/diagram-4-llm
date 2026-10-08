@@ -362,9 +362,19 @@ Browser-specific constraints:
   or remove one of the largest attachments. The comparison uses the
   input estimate only. Without a window there is no warning.
 - **Pages:** the URL fragment selects the page (`#/welcome`, `#/setup`,
-  `#/app`), so a static host serves every page from one file. A first
+  `#/app`, `#/session`), so a static host serves every page from one file. A first
   visit without a fragment shows the welcome page; once the app has been
   used, or a provider is configured, the bare address opens the app.
+- **Claude Code sessions** (`packages/core/src/claude-code.ts`,
+  `apps/web/src/ui/SessionPage.tsx`): "Map a Claude Code session" in the
+  sidebar opens a page where a session transcript from
+  `~/.claude/projects` is opened with a file picker and shown read-only:
+  the map of its prompts, activity and compactions next to the selected
+  branch, where each tool call shows its input and result. The map is
+  navigated like the conversation map. Lines that could not be read and
+  lines with nothing to show are reported. The transcript is kept only
+  while the page is open, never stored
+  ([ADR 0009](adr/0009-claude-code-session-map.md)).
 - **Welcome page** (`apps/web/src/ui/Landing.tsx`): written as a
   conversation with the app. It opens empty and, after a short pause,
   shows only an empty field. Any key (except browser shortcuts), or a
