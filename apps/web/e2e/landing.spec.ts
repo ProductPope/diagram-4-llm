@@ -269,3 +269,48 @@ test.describe("on a phone", () => {
     await expect(exchange.getByText("the map shows where")).toBeInViewport();
   });
 });
+
+test.describe("on a phone, the suggestions", () => {
+  test.use({ viewport: { width: 390, height: 664 }, hasTouch: true });
+
+  test("stay on one row that scrolls sideways", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel("Next question").tap();
+    await expect(
+      page.getByRole("region", { name: "What is this?" }),
+    ).toHaveAttribute("data-phase", "answered");
+
+    const dock = page.getByRole("region", { name: "Ask a question" });
+    const row = dock
+      .getByRole("button", { name: "Show everything" })
+      .locator("..");
+    const suggestions = row.getByRole("button");
+    const tops = await suggestions.evaluateAll((buttons) =>
+      buttons.map((button) => button.getBoundingClientRect().top),
+    );
+    expect(tops.length).toBeGreaterThan(2);
+    expect(new Set(tops).size).toBe(1);
+
+    // The row is wider than the screen, the page itself is not.
+    const { rowWidth, rowScrollWidth, pageScrollWidth } = await row.evaluate(
+      (element) => ({
+        rowWidth: element.clientWidth,
+        rowScrollWidth: element.scrollWidth,
+        pageScrollWidth: document.documentElement.scrollWidth,
+      }),
+    );
+    expect(rowScrollWidth).toBeGreaterThan(rowWidth);
+    expect(pageScrollWidth).toBeLessThanOrEqual(390);
+
+    const last = dock.getByRole("button", { name: "Show everything" });
+    await expect(last).not.toBeInViewport();
+    await row.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth;
+    });
+    await expect(last).toBeInViewport();
+    await last.tap();
+    await expect(
+      page.getByRole("region", { name: "How do I start?" }),
+    ).toBeVisible();
+  });
+});

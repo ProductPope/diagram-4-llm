@@ -232,11 +232,30 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
     const stopFollowing = () => {
       following.current = false;
     };
+    // Swiping sideways through the suggestions on a phone does not scroll
+    // the page, so only a mostly vertical swipe takes over from following.
+    let touchStart: { readonly x: number; readonly y: number } | null = null;
+    const onTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      touchStart =
+        touch === undefined ? null : { x: touch.clientX, y: touch.clientY };
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (touchStart === null || touch === undefined) return;
+      if (
+        Math.abs(touch.clientY - touchStart.y) >=
+        Math.abs(touch.clientX - touchStart.x)
+      )
+        stopFollowing();
+    };
     window.addEventListener("wheel", stopFollowing, { passive: true });
-    window.addEventListener("touchmove", stopFollowing, { passive: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
     return () => {
       window.removeEventListener("wheel", stopFollowing);
-      window.removeEventListener("touchmove", stopFollowing);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
     };
   }, []);
 
@@ -350,10 +369,15 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
           aria-label="Ask a question"
         >
           <div className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-4 pb-4">
+            {/* On a phone the suggestions stay on one row the visitor swipes
+                through, so they do not push the field up the small screen.
+                The row reaches the screen's edges, and its padding keeps the
+                focus ring from being clipped. */}
             <div
-              className={cn("flex flex-wrap items-center gap-2", {
-                hidden: opening,
-              })}
+              className={cn(
+                "-mx-4 -my-1 flex items-center gap-2 overflow-x-auto px-4 py-1 sm:mx-0 sm:my-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:py-0",
+                { hidden: opening },
+              )}
             >
               {remaining.slice(1).map((index) => (
                 <Button
