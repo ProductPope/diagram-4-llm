@@ -25,7 +25,9 @@ export function SetupPage({ onOpenDemo, onSkip, demoReady, ...wizard }: Props) {
         <div className="flex items-center gap-1">
           <Button variant="ghost" onClick={onOpenDemo} disabled={!demoReady}>
             <Sparkles aria-hidden="true" />
-            Explore the demo
+            {/* A phone has room for one label next to the name, and
+                skipping says less with an icon alone. */}
+            <span className="sr-only sm:not-sr-only">Explore the demo</span>
           </Button>
           <Button variant="ghost" onClick={onSkip}>
             Skip for now

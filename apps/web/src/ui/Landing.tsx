@@ -314,7 +314,9 @@ export function Landing({ demoReady, onOpenDemo, onSetup, onOpenApp }: Props) {
           <Button variant="ghost" asChild>
             <a href={REPOSITORY} target="_blank" rel="noreferrer">
               <Code aria-hidden="true" />
-              Source
+              {/* A phone has room for one label next to the name, and the
+                  app is where a visitor is meant to go. */}
+              <span className="sr-only sm:not-sr-only">Source</span>
             </a>
           </Button>
           <Button variant="ghost" onClick={onOpenApp}>
