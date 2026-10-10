@@ -128,3 +128,37 @@ test("shows one view at a time on a narrow screen", async ({ page }) => {
   await expectNoHorizontalScroll(page);
   expect(consoleErrors).toEqual([]);
 });
+
+test.describe("on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  // A header that wraps to a second row pushes the page down the small
+  // screen, so the name and every control in the header share one row.
+  test("each page header fits on one row", async ({ page }) => {
+    for (const path of [
+      "/",
+      "/#/setup",
+      "/#/app",
+      "/#/features",
+      "/#/session",
+    ]) {
+      await page.goto(path);
+      const header = page.getByRole("banner");
+      const brand = header.getByRole("link", { name: "diagram-4-llm" });
+      const last = header
+        .getByRole("button")
+        .or(header.getByRole("link"))
+        .last();
+      await expect(last).toBeVisible();
+      const brandBox = await brand.boundingBox();
+      const lastBox = await last.boundingBox();
+      expect(brandBox, path).not.toBeNull();
+      expect(lastBox, path).not.toBeNull();
+      const middle = (box: { y: number; height: number } | null) =>
+        (box?.y ?? 0) + (box?.height ?? 0) / 2;
+      expect(Math.abs(middle(brandBox) - middle(lastBox)), path).toBeLessThan(
+        2,
+      );
+    }
+  });
+});
